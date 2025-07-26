@@ -11,6 +11,9 @@ RUN apt-get update && \
         libssl3 \
         libcurl4 \
         libunwind8 \
+        git \
+        openssh-client \
+        wget \ 
         && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
