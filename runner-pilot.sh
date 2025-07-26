@@ -4,7 +4,7 @@ set -e
 
 REPO_BASE="https://raw.githubusercontent.com/0xAungkon/RunnerPilot/refs/heads/main"
 INSTALL_PATH="/bin/runner-pilot"
-TMP_DIR="/tmp/run-pillot"
+TMP_DIR="/tmp/run-pilot"
 RUN_SCRIPT="$TMP_DIR/run.sh"
 DOCKERFILE="$TMP_DIR/Dockerfile"
 
@@ -54,8 +54,8 @@ run_runner() {
 
   mkdir -p "$TMP_DIR"
 
-  [[ -f "$RUN_SCRIPT" ]] || curl -fsSL "$REPO_BASE/runner-pillot/run.sh" -o "$RUN_SCRIPT"
-  [[ -f "$DOCKERFILE" ]] || curl -fsSL "$REPO_BASE/runner-pillot/Dockerfile" -o "$DOCKERFILE"
+  [[ -f "$RUN_SCRIPT" ]] || curl -fsSL "$REPO_BASE/runner-pilot/run.sh" -o "$RUN_SCRIPT"
+  [[ -f "$DOCKERFILE" ]] || curl -fsSL "$REPO_BASE/runner-pilot/Dockerfile" -o "$DOCKERFILE"
   chmod +x "$RUN_SCRIPT"
 
   "$RUN_SCRIPT" --url "$REPO_URL" --token "$GITHUB_TOKEN"
