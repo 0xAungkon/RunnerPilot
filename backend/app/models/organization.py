@@ -12,12 +12,11 @@ class OrgType(str, Enum):
     personal = "personal"
     organization = "organization"
 
-
 class OrgBase(SQLModel):
     name: str
+    uid: str = Field(primary_key=True)
     org_type: OrgType = Field(default=OrgType.organization)
     org_creator: uuid.UUID = Field(foreign_key="users.uid")
-
 
 class Org(BaseTable, OrgBase, table=True):
     __tablename__ = "org"

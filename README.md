@@ -25,7 +25,7 @@ This repository contains the code for Runner Pilot, a system that allows you to 
   - password (Hashed)
 
 * Org Table:
-  - uid (Primary Key)
+  - uid (Primary Key) - str
   - name (Unique)
   - org type (Enum: personal, organization)
   - org creator (Foreign Key: Users.id)
@@ -297,3 +297,37 @@ Redis Data Structures:
 │   └── wipedb.py
 └── uv.lock
 ```
+
+
+
+API Documentation: 
+
+User Authentication & Authorization:
+- POST /auth/register: Register a new user.
+- POST /auth/login: Authenticate a user and return a JWT token.
+- POST /onboarding: Initial setup for the first user and organization.
+- GET /common/me: Get the authenticated user's details.
+
+- Organization Management:
+- POST /org: Create a new organization.
+- GET /org/{org_id}: Get details of a specific organization.
+- GET /org: List all organizations the user belongs to.
+- PUT /org/{org_id}: Update organization details.
+
+- Runner Management:
+- POST /org/{org_id}/runners: Create a new runner.
+- GET /org/{org_id}/runners/{runner_id}: Get details of a specific runner.
+- GET /org/{org_id}/runners: List all runners in the organization's workspace.
+- DELETE /org/{org_id}/runners/{runner_id}: Delete a specific runner.
+- PUT /org/{org_id}/runners/{runner_id}: Update runner details.
+- PATCH /org/{org_id}/runners/{runner_id}/status: Update runner status (e.g., idle, busy).
+
+
+- Runner Instance Management:
+- POST /org/{org_id}/runners/{runner_id}/instance: Create a new runner.
+- GET /org/{org_id}/runners/{runner_id}/instance/{instance_id}: Get details of a specific runner.
+- GET /org/{org_id}/runners/{runner_id}/instance: List all runners in the organization's workspace.
+- DELETE /org/{org_id}/runners/{runner_id}/instance/{instance_id}: Delete a specific runner.
+- PUT /org/{org_id}/runners/{runner_id}/instance/{instance_id}: Update runner details.
+- PATCH /org/{org_id}/runners/{runner_id}/instance/{instance_id}: Update runner status (e.g., idle, busy).
+
