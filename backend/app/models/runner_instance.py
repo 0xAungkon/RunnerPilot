@@ -3,7 +3,8 @@ from typing import Optional
 import uuid
 from datetime import datetime
 
-from sqlmodel import Field, JSON, SQLModel
+from sqlalchemy import Column, JSON
+from sqlmodel import Field, SQLModel
 
 from .common import BaseTable
 
@@ -20,7 +21,7 @@ class RunnerInstanceBase(SQLModel):
     node_id: uuid.UUID = Field(foreign_key="node.uid")
     instance_identifier: Optional[str] = None
     instance_host: Optional[str] = None
-    instance_meta: Optional[dict] = Field(default=None, sa_column=JSON)
+    instance_meta: Optional[dict] = Field(default=None, sa_column=Column(JSON))
     status: RunnerInstanceStatus = Field(default=RunnerInstanceStatus.offline)
     last_heartbeat: Optional[datetime] = None
 

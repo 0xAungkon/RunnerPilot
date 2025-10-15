@@ -2,7 +2,8 @@ from enum import Enum
 from typing import Optional
 import uuid
 
-from sqlmodel import Field, JSON, SQLModel
+from sqlalchemy import Column, JSON
+from sqlmodel import Field, SQLModel
 
 from .common import BaseTable
 
@@ -16,7 +17,7 @@ class OrgUserBase(SQLModel):
     org_id: uuid.UUID = Field(foreign_key="org.uid")
     user_id: uuid.UUID = Field(foreign_key="users.uid")
     role: OrgUserRole = Field(default=OrgUserRole.member)
-    permissions: Optional[dict] = Field(default=None, sa_column=JSON)
+    permissions: Optional[dict] = Field(default=None, sa_column=Column(JSON))
 
 
 class OrgUser(BaseTable, OrgUserBase, table=True):
