@@ -71,8 +71,9 @@ class BaseCRUD(Generic[ModelType, CreateSchemaType, UpdateSchemaType, PatchSchem
     def __init__(self, model: Type[ModelType]):
         self.model = model
 
-    def create(self, *, session: Session, obj_in: CreateSchemaType, tenant_id: uuid.UUID = None) -> ModelType:
-        update_dict = {"tenant_id": tenant_id} if tenant_id is not None else {}
+    def create(self, *, session: Session, obj_in: CreateSchemaType, org_id: uuid.UUID | None = None) -> ModelType:
+        # Attach organization id if provided and model supports it
+        update_dict = {"org_id": org_id} if org_id is not None else {}
         db_obj = self.model.model_validate(obj_in, update=update_dict)
         session.add(db_obj)
         session.commit()
