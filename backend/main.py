@@ -12,4 +12,9 @@ async def startup_event():
 	init_db()
 
 
+from routers import auth, common
+
+
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(common.router, prefix="/common", tags=["common"])
 app.include_router(users.router, prefix="/users", tags=["users"])
