@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ENVIRONMENT: str = "production"
     VOLUME_PATH: str = "/volume"
+    RELEASE_CACHE_TTL_HOURS: int = 72
 
     class Config:
         env_file = ".env"

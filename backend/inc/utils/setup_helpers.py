@@ -13,10 +13,10 @@ except ImportError:
 
 
 def _get_latest_release() -> dict[str, Any] | None:
-    """Fetch the latest runner release from GitHub API cache or live."""
-    from inc.utils.release_helpers import _read_cache, _is_cache_fresh, _fetch_and_cache_releases, _transform
+    """Fetch the latest runner release from GitHub API cache or live with fallback."""
+    from inc.utils.release_helpers import _read_cache, _is_cache_fresh, _fetch_with_fallback, _transform
     
-    # Try to read from cache first
+    # Try to read from cache first if fresh
     try:
         if _is_cache_fresh():
             cached = _read_cache()
@@ -27,9 +27,9 @@ def _get_latest_release() -> dict[str, Any] | None:
     except Exception:
         pass
     
-    # If no cache, fetch and cache from GitHub
+    # If no fresh cache, fetch from GitHub with fallback to expired cache
     try:
-        raw = _fetch_and_cache_releases()
+        raw = _fetch_with_fallback()
         transformed = _transform(raw)
         if transformed:
             return transformed[0]

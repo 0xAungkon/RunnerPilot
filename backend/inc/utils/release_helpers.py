@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import os
+import logging
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, List, Optional, TypedDict
 
@@ -14,11 +16,13 @@ from inc.auth import AuthorizedUser, authorized_user
 from inc.utils.meta import get_meta as _get_meta, set_meta as _set_meta
 from inc.config import settings
 
+logger = logging.getLogger(__name__)
+
 # -------- Constants ---------
 CACHE_FILE = os.path.join(settings.VOLUME_PATH, "runner-release.json")
 RUNNERS_DIR = os.path.join(settings.VOLUME_PATH, "runners", "releases")
 META_LAST_PULL = "last_pulled_release"
-TTL = timedelta(hours=1)
+TTL = timedelta(hours=settings.RELEASE_CACHE_TTL_HOURS)
 GITHUB_API = "https://api.github.com/repos/actions/runner/releases"
 
 
@@ -62,14 +66,28 @@ def _write_cache(data: list[Any]) -> None:
 
 def _fetch_github_releases() -> list[dict[str, Any]]:
     try:
-        with urllib.request.urlopen(GITHUB_API) as resp:
-            if resp.status != 200:
-                raise HTTPException(status_code=resp.status, detail="GitHub API error")
+        req = urllib.request.Request(
+            GITHUB_API,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/115.0.0.0 Safari/537.36"
+                )
+            },
+        )
+        # enforce a 10 second max timeout
+        with urllib.request.urlopen(req, timeout=7) as resp:
+            if getattr(resp, "status", None) != 200:
+                raise HTTPException(status_code=getattr(resp, "status", 502), detail="GitHub API error")
             body = resp.read()
             return json.loads(body.decode("utf-8"))
     except HTTPException:
         raise
     except Exception as e:
+        # treat timeouts specially
+        if isinstance(e, TimeoutError) or "timed out" in str(e).lower():
+            raise HTTPException(status_code=504, detail="GitHub API request timed out")
         raise HTTPException(status_code=502, detail=f"Failed to fetch releases: {e}")
 
 
@@ -82,6 +100,54 @@ def _fetch_and_cache_releases() -> list[dict[str, Any]]:
     _write_cache(raw)
     _set_meta(META_LAST_PULL, _now_utc_iso(), meta_type="string")
     return raw
+
+
+def _cache_exists() -> bool:
+    """Check if cache file exists (regardless of TTL)."""
+    return os.path.exists(CACHE_FILE)
+
+
+def _fetch_with_fallback() -> list[dict[str, Any]]:
+    """
+    Fetch releases from GitHub with fallback to expired cache on failure.
+    If remote fetch fails but cache exists (even if expired), return cached data with warning.
+    Only raises exception if both remote and cache fail.
+    """
+    # Try to fetch from GitHub first
+    try:
+        return _fetch_and_cache_releases()
+    except HTTPException as e:
+        # If fetch failed, try to use expired cache
+        if _cache_exists():
+            try:
+                cached_data = _read_cache()
+                logger.warning(
+                    f"Failed to fetch releases from GitHub (HTTP {e.status_code}): {e.detail}. "
+                    "Using expired cache as fallback. This data may be outdated."
+                )
+                return cached_data
+            except Exception as cache_error:
+                # If cache read also fails, raise original GitHub error
+                logger.error(f"Failed to read expired cache: {cache_error}")
+                raise e
+        else:
+            # No cache available, raise the original error
+            raise
+    except Exception as e:
+        # For non-HTTPException errors, also try cache fallback
+        if _cache_exists():
+            try:
+                cached_data = _read_cache()
+                logger.warning(
+                    f"Failed to fetch releases from GitHub: {str(e)}. "
+                    "Using expired cache as fallback. This data may be outdated."
+                )
+                return cached_data
+            except Exception as cache_error:
+                logger.error(f"Failed to read expired cache: {cache_error}")
+                raise e
+        else:
+            raise
 
 
 def _pick_linux_x64_asset(assets: list[dict[str, Any]]) -> tuple[Optional[str], Optional[int]]:
@@ -154,13 +220,14 @@ def _version_already_downloaded(version: str) -> bool:
 
 
 def _download_with_progress(url: str, filepath: str) -> Any:
-    """Generator that yields download progress as JSON lines."""
+    """Generator that yields download progress as JSON lines every 3 seconds."""
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req) as resp:
             total_size = int(resp.headers.get("content-length", 0))
             downloaded = 0
             chunk_size = 8192
+            last_yield_time = time.time()
 
             # Create parent directories
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -179,16 +246,19 @@ def _download_with_progress(url: str, filepath: str) -> Any:
                     else:
                         percentage = 0
 
-                    # Yield progress as JSON
-                    progress_json = json.dumps({
-                        "status": "downloading",
-                        "percentage": percentage,
-                        "downloaded": downloaded,
-                        "total": total_size,
-                    })
-                    yield f"{progress_json}\n"
+                    # Yield progress every 3 seconds or when download is complete
+                    current_time = time.time()
+                    if current_time - last_yield_time >= 3 or downloaded == total_size:
+                        progress_json = json.dumps({
+                            "status": "downloading",
+                            "percentage": percentage,
+                            "downloaded": downloaded,
+                            "total": total_size,
+                        })
+                        yield f"{progress_json}\n"
+                        last_yield_time = current_time
 
-            # Yield completion message
+            # Yield final completion message
             completion_json = json.dumps({
                 "status": "completed",
                 "percentage": 100,

@@ -14,18 +14,12 @@ from inc.auth import AuthorizedUser, authorized_user
 from inc.utils.meta import get_meta as _get_meta, set_meta as _set_meta
 from inc.config import settings
 from inc.utils.release_helpers import (_now_utc_iso, _is_cache_fresh, _read_cache, _write_cache,
-                                        _fetch_github_releases, _fetch_and_cache_releases, _transform,
-                                        _version_already_downloaded, _find_release_by_version,
+                                        _fetch_github_releases, _fetch_and_cache_releases, _fetch_with_fallback,
+                                        _transform, _version_already_downloaded, _find_release_by_version,
                                         _get_download_filename, _download_with_progress,
                                         CACHE_FILE, RUNNERS_DIR, META_LAST_PULL, TTL, GITHUB_API)
 
 router = APIRouter()
-
-CACHE_FILE = os.path.join(settings.VOLUME_PATH, "runner-release.json")
-RUNNERS_DIR = os.path.join(settings.VOLUME_PATH, "runners", "releases")
-META_LAST_PULL = "last_pulled_release"
-TTL = timedelta(hours=1)
-GITHUB_API = "https://api.github.com/repos/actions/runner/releases"
 
 
 class ReleaseOut(BaseModel):
@@ -50,10 +44,10 @@ async def get_releases(user: AuthorizedUser = Depends(authorized_user)):
     if _is_cache_fresh():
         raw = _read_cache()
         return _transform(raw)
-
-    # 3-4: fetch from GitHub, save cache, and update meta
-    raw = _fetch_and_cache_releases()
-
+    
+    # 3-4: fetch from GitHub with fallback to expired cache on failure
+    raw = _fetch_with_fallback()
+    
     # 5: transform
     return _transform(raw)
 
