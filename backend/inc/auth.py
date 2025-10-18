@@ -3,7 +3,8 @@ from typing import Any, Dict, Optional
 import jwt
 from inc.config import settings
 from pydantic import BaseModel, EmailStr
-from fastapi import Header, HTTPException
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
@@ -26,15 +27,11 @@ class AuthorizedUser(BaseModel):
     exp: datetime
 
 
-def authorized_user(authorization: Optional[str] = Header(None)) -> AuthorizedUser:
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Missing Authorization header")
+_bearer_scheme = HTTPBearer(auto_error=True)
 
-    parts = authorization.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise HTTPException(status_code=401, detail="Invalid Authorization header")
 
-    token = parts[1]
+def authorized_user(credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme)) -> AuthorizedUser:
+    token = credentials.credentials
     try:
         payload = decode_access_token(token)
         # Normalize exp to datetime if necessary
