@@ -1,8 +1,10 @@
 import platform
 import psutil
 import distro
+import os
 from typing import Dict, Any, List
 from pydantic import BaseModel
+from inc.config import settings
 
 try:
     import docker
@@ -65,6 +67,19 @@ def is_ubuntu_image_available() -> bool:
                     if "ubuntu" in tag and ("latest" in tag or tag.endswith("ubuntu")):
                         return True
         return False
+    except Exception:
+        return False
+
+
+def is_runner_image_available() -> bool:
+    """Check if any runner image is available in the runners/releases directory"""
+    try:
+        runners_dir = os.path.join(settings.VOLUME_PATH, "runners", "releases")
+        if not os.path.exists(runners_dir):
+            return False
+        files = os.listdir(runners_dir)
+        # Check if there are any files in the directory
+        return len(files) > 0
     except Exception:
         return False
 
@@ -140,11 +155,25 @@ def check_prerequisites() -> PrerequisitesResponse:
             message="ubuntu:latest Docker image is available"
             if ubuntu_image_available
             else "ubuntu:latest Docker image is not available",
-            mandatory=True,
+            mandatory=False,
         )
     )
 
-    # Global status is True only if all mandatory checks pass
+    # Check 6: Runner Image Available
+    runner_image_available = is_runner_image_available()
+    checks.append(
+        PrerequisiteCheck(
+            key="runner_image_available",
+            status=runner_image_available,
+            message="Runner image is available in runners/releases directory"
+            if runner_image_available
+            else "No runner image found in runners/releases directory",
+            mandatory=False,
+        )
+    )
+
+    # Global status is True only if all MANDATORY checks pass
+    # ubuntu_docker_image and runner_image_available do not affect global status
     global_status = all(check.status for check in checks if check.mandatory)
 
     return PrerequisitesResponse(checks=checks, status=global_status)
