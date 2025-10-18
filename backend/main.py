@@ -1,11 +1,15 @@
 from fastapi import FastAPI
-from inc.db import db
-from models import User
 from routers import users
 
 app = FastAPI()
 
-db.connect()
-db.create_tables([User])
+
+@app.on_event("startup")
+async def startup_event():
+	# Initialize DB connection and create tables for all models in `models` package
+	from inc.db import init_db
+
+	init_db()
+
 
 app.include_router(users.router, prefix="/users", tags=["users"])
