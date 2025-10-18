@@ -2,7 +2,7 @@ import json
 import os
 import urllib.request
 import time
-from typing import Any, Generator
+from typing import Any, Generator, Optional
 from inc.config import settings
 from inc.utils.prerequisites import check_prerequisites
 
@@ -11,6 +11,45 @@ try:
     DOCKER_AVAILABLE = True
 except ImportError:
     DOCKER_AVAILABLE = False
+
+
+def _is_ubuntu_image_available() -> bool:
+    """Check if ubuntu:latest Docker image is available."""
+    if not DOCKER_AVAILABLE:
+        return False
+    try:
+        client = docker.from_env()
+        images = client.images.list()
+        for image in images:
+            if image.tags:
+                for tag in image.tags:
+                    if "ubuntu" in tag and ("latest" in tag or tag.endswith("ubuntu")):
+                        return True
+        return False
+    except Exception:
+        return False
+
+
+def _is_runner_binary_available_and_valid(expected_digest: Optional[str] = None) -> bool:
+    """Check if runner binary/archive is available and matches digest if provided."""
+    try:
+        runners_dir = os.path.join(settings.VOLUME_PATH, "runner")
+        if not os.path.exists(runners_dir):
+            return False
+        files = os.listdir(runners_dir)
+        # Check if actions-runner tar.gz exists
+        for f in files:
+            if "actions-runner" in f and f.endswith(".tar.gz"):
+                filepath = os.path.join(runners_dir, f)
+                # If digest is provided, verify it
+                if expected_digest:
+                    from inc.utils.release_helpers import _verify_downloaded_file_digest
+                    return _verify_downloaded_file_digest(filepath, expected_digest)
+                # If no digest provided, just check file exists
+                return True
+        return False
+    except Exception:
+        return False
 
 
 def _get_latest_release() -> dict[str, Any] | None:
@@ -252,16 +291,9 @@ def setup_streaming_generator() -> Generator[str, None, None]:
     })
     yield f"{prereq_json}\n"
     
-    # Step 2: Download latest runner image
+    # Step 2: Download latest runner image (skip if available and digest matches)
     latest_release = _get_latest_release()
-    if latest_release and latest_release.get("download_url"):
-        runners_dir = os.path.join(settings.VOLUME_PATH, "runner")
-        # filename = latest_release["download_url"].split("/")[-1]
-        filename="actions-runner-linux-x64.tar.gz"
-        filepath = os.path.join(runners_dir, filename)
-        
-        yield from _download_with_progress_streaming(latest_release["download_url"], filepath)
-    else:
+    if not latest_release or not latest_release.get("download_url"):
         error_json = json.dumps({
             "action": "error",
             "message": "Could not find latest runner release",
@@ -269,8 +301,34 @@ def setup_streaming_generator() -> Generator[str, None, None]:
         yield f"{error_json}\n"
         return
     
-    # Step 3: Pull ubuntu Docker image
-    yield from _pull_ubuntu_docker_image()
+    # Get the expected digest from the release
+    expected_digest = latest_release.get("digest")
+    
+    if _is_runner_binary_available_and_valid(expected_digest):
+        skip_json = json.dumps({
+            "action": "pulling latest action runner",
+            "status": "skipped",
+            "message": "Runner binary already available and digest verified, skipping download",
+            "digest": expected_digest,
+        })
+        yield f"{skip_json}\n"
+    else:
+        runners_dir = os.path.join(settings.VOLUME_PATH, "runner")
+        filename = "actions-runner-linux-x64.tar.gz"
+        filepath = os.path.join(runners_dir, filename)
+        
+        yield from _download_with_progress_streaming(latest_release["download_url"], filepath)
+    
+    # Step 3: Pull ubuntu Docker image (skip if already available)
+    if _is_ubuntu_image_available():
+        skip_json = json.dumps({
+            "action": "pulling ubuntu docker image",
+            "status": "skipped",
+            "message": "Ubuntu image already available, skipping pull",
+        })
+        yield f"{skip_json}\n"
+    else:
+        yield from _pull_ubuntu_docker_image()
     
     # Step 4: Build GitHub runner Docker image
     yield from _build_docker_image()

@@ -30,6 +30,7 @@ class ReleaseOut(BaseModel):
     html_url: Optional[str]
     is_pulled: bool  # whether this version has been downloaded
     is_linux_available: bool  # whether linux-x64 asset is available
+    digest: Optional[str]  # sha256 digest of the asset if available
 
 
 class PullRunnerIn(BaseModel):

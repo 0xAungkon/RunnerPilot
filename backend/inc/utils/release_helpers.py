@@ -4,6 +4,7 @@ import json
 import os
 import logging
 import time
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any, List, Optional, TypedDict
 
@@ -156,20 +157,20 @@ def _pick_linux_x64_asset(assets: list[dict[str, Any]]) -> tuple[Optional[str], 
     for a in assets:
         url = a.get("browser_download_url") or ""
         if "actions-runner-linux-x64" in url:
-            return url, a.get("size")
+            return url, a.get("size"), a.get("digest")
     # If exact x64 not present, return first linux asset (best effort)
     for a in assets:
         url = a.get("browser_download_url") or ""
         if "actions-runner-linux" in url:
-            return url, a.get("size")
-    return None, None
+            return url, a.get("size"), a.get("digest")
+    return None, None, None
 
 
 def _transform(releases: list[dict[str, Any]]) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for r in releases:
         assets = r.get("assets") or []
-        dl, size = _pick_linux_x64_asset(assets)
+        dl, size, digest = _pick_linux_x64_asset(assets)
         version_name = r.get("name", "")
         is_pulled = _version_already_downloaded(version_name)
         is_linux_available = dl is not None
@@ -182,6 +183,7 @@ def _transform(releases: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "html_url": r.get("html_url"),
                 "is_pulled": is_pulled,
                 "is_linux_available": is_linux_available,
+                "digest":digest
             }
         )
     return out
@@ -217,6 +219,37 @@ def _version_already_downloaded(version: str) -> bool:
     except Exception:
         pass
     return False
+
+
+def _calculate_file_sha256(filepath: str) -> Optional[str]:
+    """Calculate SHA256 digest of a file."""
+    try:
+        if not os.path.exists(filepath):
+            return None
+        sha256_hash = hashlib.sha256()
+        with open(filepath, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+    except Exception as e:
+        logger.error(f"Failed to calculate SHA256 for {filepath}: {str(e)}")
+        return None
+
+
+def _verify_downloaded_file_digest(filepath: str, expected_digest: str) -> bool:
+    """Verify if downloaded file matches the expected SHA256 digest."""
+    calculated_digest = _calculate_file_sha256(filepath)
+    if not calculated_digest:
+        return False
+    
+    # Compare digests (case-insensitive)
+    matches = calculated_digest.lower() == expected_digest.lower()
+    if not matches:
+        logger.warning(
+            f"Digest mismatch for {filepath}. "
+            f"Expected: {expected_digest}, Got: {calculated_digest}"
+        )
+    return matches
 
 
 def _download_with_progress(url: str, filepath: str) -> Any:
