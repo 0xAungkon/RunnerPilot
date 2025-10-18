@@ -25,6 +25,7 @@ class RunnerInstanceOut(BaseModel):
     github_url: str
     token: str
     hostname: Optional[str]
+    label: Optional[str]
     created_at: str
     status: str  # "active", "inactive", "error"
 
@@ -35,6 +36,7 @@ class RunnerInstanceOut(BaseModel):
 class CreateRunnerInstanceIn(BaseModel):
     github_url: str
     token: str
+    label: Optional[str] = None
     command: Optional[str] = None
 
 
@@ -110,6 +112,7 @@ async def list_instances(user: AuthorizedUser = Depends(authorized_user)):
                     github_url=instance.github_url,
                     token=instance.token,
                     hostname=instance.hostname,
+                    label=instance.label,
                     created_at=instance.created_at.isoformat(),
                     status=_get_instance_status(instance),
                 )
@@ -129,6 +132,7 @@ async def create_instance(
         instance = RunnerInstance.create(
             github_url=payload.github_url,
             token=payload.token,
+            label=payload.label,
             command=payload.command,
         )
         return RunnerInstanceOut(
@@ -136,6 +140,7 @@ async def create_instance(
             github_url=instance.github_url,
             token=instance.token,
             hostname=instance.hostname,
+            label=instance.label,
             created_at=instance.created_at.isoformat(),
             status=_get_instance_status(instance),
         )
