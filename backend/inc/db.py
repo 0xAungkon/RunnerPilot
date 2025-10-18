@@ -26,16 +26,17 @@ def init_db(models: list = None) -> None:
 	if not models:
 		# attempt to auto-discover models from the `models` package
 		discovered: List = []
-		if models_pkg is None:
+		# Use a local reference to avoid rebinding the module-level name
+		pkg = globals().get("models_pkg", None)
+		if pkg is None:
 			try:
 				import importlib
-
-				models_pkg = importlib.import_module("models")
+				pkg = importlib.import_module("models")
 			except Exception:
-				models_pkg = None
+				pkg = None
 
-		if models_pkg is not None:
-			for name, obj in vars(models_pkg).items():
+		if pkg is not None:
+			for name, obj in vars(pkg).items():
 				# pick classes that are subclasses of peewee.Model
 				try:
 					if inspect.isclass(obj):
