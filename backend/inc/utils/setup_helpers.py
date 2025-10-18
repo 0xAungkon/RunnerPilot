@@ -151,6 +151,83 @@ def _pull_ubuntu_docker_image() -> Generator[str, None, None]:
         yield f"{error_json}\n"
 
 
+def _build_docker_image() -> Generator[str, None, None]:
+    """Generator that builds the GitHub runner Docker image and yields progress every 3 seconds."""
+    if not DOCKER_AVAILABLE:
+        error_json = json.dumps({
+            "action": "error",
+            "message": "Docker is not available",
+        })
+        yield f"{error_json}\n"
+        return
+    
+    try:
+        client = docker.from_env()
+        
+        # Build path is the volumn/runner directory
+        build_path = os.path.join(settings.VOLUME_PATH, "runner")
+        
+        # Yield start message
+        start_json = json.dumps({
+            "action": "building github runner image",
+            "status": "starting",
+            "path": build_path,
+        })
+        yield f"{start_json}\n"
+        
+        last_yield_time = time.time()
+        build_lines = []
+        
+        # Build the image with streaming
+        for line in client.api.build(
+            path=build_path,
+            tag="gh_runner:latest",
+            stream=True,
+            decode=True,
+        ):
+            # Extract build output
+            output = line.get("stream", "").strip()
+            
+            if output:
+                build_lines.append(output)
+                
+                # Yield every 3 seconds or on important events
+                current_time = time.time()
+                should_yield = (
+                    current_time - last_yield_time >= 3 or
+                    "Successfully built" in output or
+                    "Successfully tagged" in output or
+                    "error" in output.lower()
+                )
+                
+                if should_yield and build_lines:
+                    # Combine accumulated lines
+                    build_output = "\n".join(build_lines[-5:])  # Last 5 lines
+                    progress_json = json.dumps({
+                        "action": "building github runner image",
+                        "status": "building",
+                        "output": build_output,
+                    })
+                    yield f"{progress_json}\n"
+                    last_yield_time = current_time
+        
+        # Yield completion message
+        completion_json = json.dumps({
+            "action": "building github runner image",
+            "status": "completed",
+            "message": "GitHub runner image built successfully",
+            "image_tag": "gh_runner:latest",
+        })
+        yield f"{completion_json}\n"
+        
+    except Exception as e:
+        error_json = json.dumps({
+            "action": "error",
+            "message": f"Failed to build runner image: {str(e)}",
+        })
+        yield f"{error_json}\n"
+
+
 def setup_streaming_generator() -> Generator[str, None, None]:
     """Main setup generator that validates and downloads everything with streaming."""
     
@@ -178,8 +255,9 @@ def setup_streaming_generator() -> Generator[str, None, None]:
     # Step 2: Download latest runner image
     latest_release = _get_latest_release()
     if latest_release and latest_release.get("download_url"):
-        runners_dir = os.path.join(settings.VOLUME_PATH, "runners", "releases")
-        filename = latest_release["download_url"].split("/")[-1]
+        runners_dir = os.path.join(settings.VOLUME_PATH, "runner")
+        # filename = latest_release["download_url"].split("/")[-1]
+        filename="actions-runner-linux-x64.tar.gz"
         filepath = os.path.join(runners_dir, filename)
         
         yield from _download_with_progress_streaming(latest_release["download_url"], filepath)
@@ -194,7 +272,10 @@ def setup_streaming_generator() -> Generator[str, None, None]:
     # Step 3: Pull ubuntu Docker image
     yield from _pull_ubuntu_docker_image()
     
-    # Step 4: Mark setup as complete
+    # Step 4: Build GitHub runner Docker image
+    yield from _build_docker_image()
+    
+    # Step 5: Mark setup as complete
     from inc.utils.meta import set_meta
     set_meta("is_setup", True, meta_type="bool")
     

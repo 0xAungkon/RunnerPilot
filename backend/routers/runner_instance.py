@@ -15,7 +15,7 @@ from models import RunnerInstance
 
 router = APIRouter()
 
-RUNNERS_DIR = os.path.join(settings.VOLUME_PATH, "runners", "releases")
+RUNNERS_DIR = os.path.join(settings.VOLUME_PATH, "runner")
 
 
 # -------- Models ---------
