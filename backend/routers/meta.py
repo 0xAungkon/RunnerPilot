@@ -3,7 +3,7 @@ from inc.auth import AuthorizedUser, authorized_user
 from pydantic import BaseModel
 from typing import Any, List, Literal
 from models import Meta
-from inc.utils.serialization import (
+from inc.utils.meta_serialization import (
     serialize_meta_value as _serialize_meta_value,
     deserialize_meta_value as _deserialize_meta_value,
 )

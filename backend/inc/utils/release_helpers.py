@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from inc.auth import AuthorizedUser, authorized_user
 from inc.utils.meta import get_meta as _get_meta, set_meta as _set_meta
 from inc.config import settings
-"
+
 
 
 # -------- Helpers ---------

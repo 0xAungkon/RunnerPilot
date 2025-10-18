@@ -20,7 +20,7 @@ def set_meta(key: str, value: Any, meta_type: str | None = None) -> None:
             meta_type = "json"
 
     # Serialize similar to router logic
-    from .serialization import serialize_meta_value  # type: ignore
+    from .meta_serialization import serialize_meta_value  # type: ignore
 
     raw = serialize_meta_value(value, meta_type)
 
@@ -36,7 +36,7 @@ def set_meta(key: str, value: Any, meta_type: str | None = None) -> None:
 
 
 def get_meta(key: str) -> Any:
-    from .serialization import deserialize_meta_value  # type: ignore
+    from .meta_serialization import deserialize_meta_value  # type: ignore
 
     row = Meta.get_or_none(Meta.meta_key == key)
     if row is None:
