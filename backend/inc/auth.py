@@ -31,6 +31,7 @@ _bearer_scheme = HTTPBearer(auto_error=True)
 
 def authorized_user():
     pass
+
 # def authorized_user(credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme)) -> AuthorizedUser:
 #     token = credentials.credentials
 #     try:
