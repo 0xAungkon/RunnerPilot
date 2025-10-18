@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.log
+
+# Virtual environments
+.env
+.venv
+venv/
+ENV/
+
+# Environment files
+*.env
+
+# SQLite database
+*.db
+*.sqlite3
+
+# IDE and editor settings
+.vscode/
+.idea/
+*.swp
+
+# Build / cache
+dist/
+build/
+*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# UV cache
+.uv/
+

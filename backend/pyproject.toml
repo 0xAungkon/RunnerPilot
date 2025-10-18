@@ -1,0 +1,13 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.119.0",
+    "peewee>=3.18.2",
+    "pewee>=0.1.0.dev9",
+    "pydantic-settings>=2.11.0",
+    "uvicorn>=0.37.0",
+]
