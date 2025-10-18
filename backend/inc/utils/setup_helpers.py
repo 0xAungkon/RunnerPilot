@@ -211,11 +211,10 @@ def _build_docker_image() -> Generator[str, None, None]:
         last_yield_time = time.time()
         build_lines = []
         
-        # Build the image with streaming
+        # Build the image with streaming using low-level API
         for line in client.api.build(
             path=build_path,
             tag="gh_runner:latest",
-            stream=True,
             decode=True,
         ):
             # Extract build output
