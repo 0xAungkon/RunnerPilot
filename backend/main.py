@@ -24,5 +24,5 @@ app.include_router(system.router, prefix="/system", tags=["system"])
 if is_dev():
 	app.include_router(meta.router, prefix="/meta", tags=["meta"])
 
-app.include_router(runners_release.router, tags=["runners"], include_in_schema=True)
+# app.include_router(runners_release.router, tags=["runners"], include_in_schema=True)
 app.include_router(runner_instance.router, tags=["runners"], include_in_schema=True)

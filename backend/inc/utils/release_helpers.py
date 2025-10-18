@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # -------- Constants ---------
 CACHE_FILE = os.path.join(settings.VOLUME_PATH, "runner-release.json")
-RUNNERS_DIR = os.path.join(settings.VOLUME_PATH, "runners", "releases")
+RUNNERS_DIR = os.path.join(settings.VOLUME_PATH, "runner")
 META_LAST_PULL = "last_pulled_release"
 TTL = timedelta(hours=settings.RELEASE_CACHE_TTL_HOURS)
 GITHUB_API = "https://api.github.com/repos/actions/runner/releases"

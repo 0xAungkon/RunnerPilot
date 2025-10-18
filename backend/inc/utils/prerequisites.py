@@ -74,7 +74,7 @@ def is_ubuntu_image_available() -> bool:
 def is_runner_image_available() -> bool:
     """Check if any runner image is available in the runners/releases directory"""
     try:
-        runners_dir = os.path.join(settings.VOLUME_PATH, "runners", "releases")
+        runners_dir = os.path.join(settings.VOLUME_PATH, "runner")
         if not os.path.exists(runners_dir):
             return False
         files = os.listdir(runners_dir)
