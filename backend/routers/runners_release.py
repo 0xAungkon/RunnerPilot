@@ -7,15 +7,28 @@ from typing import Any, List, Optional, TypedDict
 
 import urllib.request
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from inc.auth import AuthorizedUser, authorized_user
 from inc.utils.meta import get_meta as _get_meta, set_meta as _set_meta
 from inc.config import settings
-
+from inc.helpers.release_helpers import (
+    _now_utc_iso,
+    _is_cache_fresh,
+    _read_cache,
+    _write_cache,
+    _fetch_github_releases,
+    _transform,
+    _version_already_downloaded,
+    _find_release_by_version,
+    _get_download_filename,
+    _download_with_progress,
+)
 router = APIRouter()
 
 CACHE_FILE = os.path.join(settings.VOLUME_PATH, "runner-release.json")
+RUNNERS_DIR = os.path.join(settings.VOLUME_PATH, "runners", "releases")
 META_LAST_PULL = "last_pulled_release"
 TTL = timedelta(hours=1)
 GITHUB_API = "https://api.github.com/repos/actions/runner/releases"
@@ -27,93 +40,12 @@ class ReleaseOut(BaseModel):
     size: Optional[int]  # size of selected asset (linux x64) if available
     download_url: Optional[str]
     html_url: Optional[str]
+    is_pulled: bool  # whether this version has been downloaded
+    is_linux_available: bool  # whether linux-x64 asset is available
 
 
 class PullRunnerIn(BaseModel):
-    id: int
-    description: Optional[str] = "pull runner"
-
-
-# -------- Helpers ---------
-
-def _now_utc_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def _is_cache_fresh() -> bool:
-    # meta time check
-    last_pull_val = _get_meta(META_LAST_PULL)
-    if last_pull_val:
-        try:
-            last_dt = datetime.fromisoformat(str(last_pull_val))
-        except Exception:
-            last_dt = None
-        if isinstance(last_dt, datetime):
-            if datetime.now(timezone.utc) - last_dt < TTL:
-                # If TTL not expired, also ensure file exists
-                return os.path.exists(CACHE_FILE)
-    return False
-
-
-def _read_cache() -> list[Any]:
-    try:
-        with open(CACHE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read cache: {e}")
-
-
-def _write_cache(data: list[Any]) -> None:
-    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-    with open(CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f)
-
-
-def _fetch_github_releases() -> list[dict[str, Any]]:
-    try:
-        with urllib.request.urlopen(GITHUB_API) as resp:
-            if resp.status != 200:
-                raise HTTPException(status_code=resp.status, detail="GitHub API error")
-            body = resp.read()
-            return json.loads(body.decode("utf-8"))
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to fetch releases: {e}")
-
-
-def _pick_linux_x64_asset(assets: list[dict[str, Any]]) -> tuple[Optional[str], Optional[int]]:
-    if not assets:
-        return None, None
-    for a in assets:
-        url = a.get("browser_download_url") or ""
-        if "actions-runner-linux-x64" in url:
-            return url, a.get("size")
-    # If exact x64 not present, return first linux asset (best effort)
-    for a in assets:
-        url = a.get("browser_download_url") or ""
-        if "actions-runner-linux" in url:
-            return url, a.get("size")
-    return None, None
-
-
-def _transform(releases: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    out: list[dict[str, Any]] = []
-    for r in releases:
-        assets = r.get("assets") or []
-        dl, size = _pick_linux_x64_asset(assets)
-        out.append(
-            {
-                "published_at": r.get("published_at"),
-                "name": r.get("name"),
-                "size": size,
-                "download_url": dl,
-                "html_url": r.get("html_url"),
-            }
-        )
-    return out
+    version: str  # version name like "v2.329.0"
 
 
 # -------- Routes ----------
@@ -138,26 +70,88 @@ async def get_releases(user: AuthorizedUser = Depends(authorized_user)):
 
 @router.post("/runners/release")
 async def pull_runner(payload: PullRunnerIn, user: AuthorizedUser = Depends(authorized_user)):
-    # For now, just acknowledge the intent to pull a runner by id.
-    # Future: implement actual download/install based on id selection.
-    return {"status": "ok", "message": "pull runner requested", "id": payload.id}
+    """
+    Download a specific runner release by version.
+    Streams download progress as JSON lines.
+    """
+    version = payload.version.strip()
+
+    # Check if version already exists
+    if _version_already_downloaded(version):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Version {version} is already downloaded"
+        )
+
+    # Find the release in cache
+    release = _find_release_by_version(version)
+    if not release:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Version {version} not found in releases"
+        )
+
+    # Transform to get download URL
+    transformed = _transform([release])
+    if not transformed:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to transform release data"
+        )
+
+    download_url = transformed[0].get("download_url")
+    if not download_url:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No linux-x64 download URL found for version {version}"
+        )
+
+    # Extract filename and prepare filepath
+    filename = _get_download_filename(download_url)
+    filepath = os.path.join(RUNNERS_DIR, filename)
+
+    # Return streaming response with download progress
+    return StreamingResponse(
+        _download_with_progress(download_url, filepath),
+        media_type="application/x-ndjson"
+    )
 
 
-@router.delete("/runners/release/{id}")
-async def delete_cached_release(id: int, user: AuthorizedUser = Depends(authorized_user)):
-    # Here, interpret delete as removing cache or specific entry from cache
-    # Since GitHub release list is authoritative, we'll clear cache if it contains the id
+@router.delete("/runners/release/{version}")
+async def delete_cached_release(version: str, user: AuthorizedUser = Depends(authorized_user)):
+    """
+    Delete a downloaded runner release by version.
+    Removes all files matching the version name from the releases directory.
+    """
+    version = version.strip()
+    
     try:
-        data = _read_cache()
-        if not data:
-            return {"status": "ok", "message": "nothing to delete"}
-        new_data = [r for r in data if int(r.get("id", -1)) != id]
-        if len(new_data) == len(data):
-            # id not found: no-op
-            return {"status": "ok", "message": "id not found in cache"}
-        _write_cache(new_data)
-        # keep last_pulled timestamp as-is
-        return {"status": "ok", "message": "deleted from cache", "id": id}
+        os.makedirs(RUNNERS_DIR, exist_ok=True)
+        files = os.listdir(RUNNERS_DIR)
+        deleted_files = []
+
+        for f in files:
+            if f.startswith(version):
+                filepath = os.path.join(RUNNERS_DIR, f)
+                try:
+                    os.remove(filepath)
+                    deleted_files.append(f)
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to delete {f}: {str(e)}"
+                    )
+
+        if not deleted_files:
+            return {"status": "ok", "message": f"No files found for version {version}"}
+
+        return {
+            "status": "ok",
+            "message": f"Deleted {len(deleted_files)} file(s)",
+            "version": version,
+            "deleted_files": deleted_files
+        }
+
     except HTTPException:
         raise
     except Exception as e:
