@@ -1,6 +1,7 @@
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from inc.utils.prerequisites import check_prerequisites, PrerequisitesResponse
-from inc.utils.meta import set_meta, get_meta
+from inc.utils.setup_helpers import setup_streaming_generator
 
 router = APIRouter()
 
@@ -12,7 +13,7 @@ def get_prerequisites():
     
     Returns:
     - checks: List of individual prerequisite checks with status, message, and mandatory flag
-    - global_status: True if all mandatory checks pass, False otherwise
+    - status: True if all mandatory checks pass, False otherwise
     """
     return check_prerequisites()
 
@@ -20,13 +21,14 @@ def get_prerequisites():
 @router.post("/setup")
 def setup_system():
     """
-    Mark the system as setup by updating the is_setup meta flag.
+    Setup the system by:
+    1. Validating all prerequisites
+    2. Downloading the latest runner image
+    3. Pulling the ubuntu:latest Docker image
     
-    Only call this after verifying that all prerequisites are met.
+    Returns streaming JSON lines with progress updates.
     """
-    set_meta("is_setup", True, meta_type="bool")
-    return {
-        "status": "success",
-        "message": "System setup completed",
-        "is_setup": get_meta("is_setup")
-    }
+    return StreamingResponse(
+        setup_streaming_generator(),
+        media_type="application/x-ndjson"
+    )
