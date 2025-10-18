@@ -1,6 +1,7 @@
 import json
 import os
 import urllib.request
+import time
 from typing import Any, Generator
 from inc.config import settings
 from inc.utils.prerequisites import check_prerequisites
@@ -40,13 +41,14 @@ def _get_latest_release() -> dict[str, Any] | None:
 
 
 def _download_with_progress_streaming(url: str, filepath: str) -> Generator[str, None, None]:
-    """Generator that yields download progress as JSON lines for streaming."""
+    """Generator that yields download progress as JSON lines every 3 seconds."""
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req) as resp:
             total_size = int(resp.headers.get("content-length", 0))
             downloaded = 0
             chunk_size = 8192
+            last_yield_time = time.time()
 
             # Create parent directories
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -65,14 +67,17 @@ def _download_with_progress_streaming(url: str, filepath: str) -> Generator[str,
                     else:
                         percentage = 0
 
-                    # Yield progress as JSON
-                    progress_json = json.dumps({
-                        "action": "pulling latest action runner",
-                        "percentage": percentage,
-                        "downloaded": downloaded,
-                        "total": total_size,
-                    })
-                    yield f"{progress_json}\n"
+                    # Yield progress every 3 seconds or when download is complete
+                    current_time = time.time()
+                    if current_time - last_yield_time >= 3 or downloaded == total_size:
+                        progress_json = json.dumps({
+                            "action": "pulling latest action runner",
+                            "percentage": percentage,
+                            "downloaded": downloaded,
+                            "total": total_size,
+                        })
+                        yield f"{progress_json}\n"
+                        last_yield_time = current_time
 
             # Yield completion message
             completion_json = json.dumps({
@@ -91,7 +96,7 @@ def _download_with_progress_streaming(url: str, filepath: str) -> Generator[str,
 
 
 def _pull_ubuntu_docker_image() -> Generator[str, None, None]:
-    """Generator that pulls ubuntu:latest Docker image and yields progress."""
+    """Generator that pulls ubuntu:latest Docker image and yields progress every 3 seconds."""
     if not DOCKER_AVAILABLE:
         error_json = json.dumps({
             "action": "error",
@@ -110,6 +115,8 @@ def _pull_ubuntu_docker_image() -> Generator[str, None, None]:
         })
         yield f"{start_json}\n"
         
+        last_yield_time = time.time()
+        
         # Pull the image with streaming
         for line in client.api.pull("ubuntu:latest", stream=True, decode=True):
             # Extract relevant info from docker API response
@@ -117,12 +124,16 @@ def _pull_ubuntu_docker_image() -> Generator[str, None, None]:
                 status = line.get("status", "")
                 progress = line.get("progress", "")
                 
-                progress_json = json.dumps({
-                    "action": "pulling ubuntu docker image",
-                    "status": status,
-                    "progress": progress,
-                })
-                yield f"{progress_json}\n"
+                # Yield progress every 3 seconds or when pull is complete
+                current_time = time.time()
+                if current_time - last_yield_time >= 3 or status in ["Pull complete", "Digest:", "Status:"]:
+                    progress_json = json.dumps({
+                        "action": "pulling ubuntu docker image",
+                        "status": status,
+                        "progress": progress,
+                    })
+                    yield f"{progress_json}\n"
+                    last_yield_time = current_time
         
         # Yield completion message
         completion_json = json.dumps({
