@@ -14,24 +14,22 @@ except ImportError:
 
 def _get_latest_release() -> dict[str, Any] | None:
     """Fetch the latest runner release from GitHub API cache or live."""
-    from inc.utils.release_helpers import _read_cache, _fetch_github_releases, _write_cache, _transform, _now_utc_iso
-    from inc.utils.meta import set_meta
+    from inc.utils.release_helpers import _read_cache, _is_cache_fresh, _fetch_and_cache_releases, _transform
     
     # Try to read from cache first
     try:
-        cached = _read_cache()
-        if cached:
-            transformed = _transform(cached)
-            if transformed:
-                return transformed[0]  # Return latest (first in list)
+        if _is_cache_fresh():
+            cached = _read_cache()
+            if cached:
+                transformed = _transform(cached)
+                if transformed:
+                    return transformed[0]  # Return latest (first in list)
     except Exception:
         pass
     
-    # If no cache, fetch from GitHub
+    # If no cache, fetch and cache from GitHub
     try:
-        raw = _fetch_github_releases()
-        _write_cache(raw)
-        set_meta("last_pulled_release", _now_utc_iso(), meta_type="string")
+        raw = _fetch_and_cache_releases()
         transformed = _transform(raw)
         if transformed:
             return transformed[0]

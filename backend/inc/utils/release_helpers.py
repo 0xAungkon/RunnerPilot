@@ -14,6 +14,13 @@ from inc.auth import AuthorizedUser, authorized_user
 from inc.utils.meta import get_meta as _get_meta, set_meta as _set_meta
 from inc.config import settings
 
+# -------- Constants ---------
+CACHE_FILE = os.path.join(settings.VOLUME_PATH, "runner-release.json")
+RUNNERS_DIR = os.path.join(settings.VOLUME_PATH, "runners", "releases")
+META_LAST_PULL = "last_pulled_release"
+TTL = timedelta(hours=1)
+GITHUB_API = "https://api.github.com/repos/actions/runner/releases"
+
 
 
 # -------- Helpers ---------
@@ -64,6 +71,17 @@ def _fetch_github_releases() -> list[dict[str, Any]]:
         raise
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Failed to fetch releases: {e}")
+
+
+def _fetch_and_cache_releases() -> list[dict[str, Any]]:
+    """
+    Centralized function to fetch releases from GitHub, cache them, and update metadata.
+    Returns the raw release data from GitHub API.
+    """
+    raw = _fetch_github_releases()
+    _write_cache(raw)
+    _set_meta(META_LAST_PULL, _now_utc_iso(), meta_type="string")
+    return raw
 
 
 def _pick_linux_x64_asset(assets: list[dict[str, Any]]) -> tuple[Optional[str], Optional[int]]:

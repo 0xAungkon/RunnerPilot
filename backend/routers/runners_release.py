@@ -13,7 +13,11 @@ from pydantic import BaseModel
 from inc.auth import AuthorizedUser, authorized_user
 from inc.utils.meta import get_meta as _get_meta, set_meta as _set_meta
 from inc.config import settings
-from inc.utils.release_helpers import  _now_utc_iso,_is_cache_fresh, _read_cache,_write_cache,_fetch_github_releases,_transform,_version_already_downloaded,_find_release_by_version,_get_download_filename,_download_with_progress
+from inc.utils.release_helpers import (_now_utc_iso, _is_cache_fresh, _read_cache, _write_cache,
+                                        _fetch_github_releases, _fetch_and_cache_releases, _transform,
+                                        _version_already_downloaded, _find_release_by_version,
+                                        _get_download_filename, _download_with_progress,
+                                        CACHE_FILE, RUNNERS_DIR, META_LAST_PULL, TTL, GITHUB_API)
 
 router = APIRouter()
 
@@ -47,12 +51,8 @@ async def get_releases(user: AuthorizedUser = Depends(authorized_user)):
         raw = _read_cache()
         return _transform(raw)
 
-    # 3: fetch from GitHub
-    raw = _fetch_github_releases()
-
-    # 4: save and update meta
-    _write_cache(raw)
-    _set_meta(META_LAST_PULL, _now_utc_iso(), meta_type="string")
+    # 3-4: fetch from GitHub, save cache, and update meta
+    raw = _fetch_and_cache_releases()
 
     # 5: transform
     return _transform(raw)
