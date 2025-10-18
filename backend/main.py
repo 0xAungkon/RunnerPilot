@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routers import users
+from routers import meta
 
 app = FastAPI()
 
@@ -17,4 +17,4 @@ from routers import auth, common
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(common.router, prefix="/common", tags=["common"])
-app.include_router(users.router, prefix="/users", tags=["users"])
+app.include_router(meta.router, prefix="/meta", tags=["meta"])

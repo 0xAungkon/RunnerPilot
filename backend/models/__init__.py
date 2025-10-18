@@ -1,1 +1,1 @@
-from .user import User
+from .meta import Meta
