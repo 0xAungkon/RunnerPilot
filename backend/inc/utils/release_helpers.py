@@ -240,14 +240,16 @@ def _verify_downloaded_file_digest(filepath: str, expected_digest: str) -> bool:
     """Verify if downloaded file matches the expected SHA256 digest."""
     calculated_digest = _calculate_file_sha256(filepath)
     if not calculated_digest:
+        logger.warning(f"Could not calculate digest for {filepath}")
         return False
     
     # Compare digests (case-insensitive)
     matches = calculated_digest.lower() == expected_digest.lower()
     if not matches:
         logger.warning(
-            f"Digest mismatch for {filepath}. "
-            f"Expected: {expected_digest}, Got: {calculated_digest}"
+            f"⚠️  CORRUPTED IMAGE DETECTED: SHA256 digest mismatch for {filepath}. "
+            f"Expected: {expected_digest}, Got: {calculated_digest}. "
+            f"This file may be corrupted or incomplete. It will be re-downloaded."
         )
     return matches
 

@@ -2,7 +2,7 @@ import json
 import os
 import urllib.request
 import time
-from typing import Any, Generator, Optional
+from typing import Any, Generator
 from inc.config import settings
 from inc.utils.prerequisites import check_prerequisites
 
@@ -30,8 +30,8 @@ def _is_ubuntu_image_available() -> bool:
         return False
 
 
-def _is_runner_binary_available_and_valid(expected_digest: Optional[str] = None) -> bool:
-    """Check if runner binary/archive is available and matches digest if provided."""
+def _is_runner_binary_available() -> bool:
+    """Check if runner binary/archive is available."""
     try:
         runners_dir = os.path.join(settings.VOLUME_PATH, "runner")
         if not os.path.exists(runners_dir):
@@ -40,12 +40,6 @@ def _is_runner_binary_available_and_valid(expected_digest: Optional[str] = None)
         # Check if actions-runner tar.gz exists
         for f in files:
             if "actions-runner" in f and f.endswith(".tar.gz"):
-                filepath = os.path.join(runners_dir, f)
-                # If digest is provided, verify it
-                if expected_digest:
-                    from inc.utils.release_helpers import _verify_downloaded_file_digest
-                    return _verify_downloaded_file_digest(filepath, expected_digest)
-                # If no digest provided, just check file exists
                 return True
         return False
     except Exception:
@@ -291,28 +285,24 @@ def setup_streaming_generator() -> Generator[str, None, None]:
     })
     yield f"{prereq_json}\n"
     
-    # Step 2: Download latest runner image (skip if available and digest matches)
-    latest_release = _get_latest_release()
-    if not latest_release or not latest_release.get("download_url"):
-        error_json = json.dumps({
-            "action": "error",
-            "message": "Could not find latest runner release",
-        })
-        yield f"{error_json}\n"
-        return
-    
-    # Get the expected digest from the release
-    expected_digest = latest_release.get("digest")
-    
-    if _is_runner_binary_available_and_valid(expected_digest):
+    # Step 2: Download latest runner image (skip if available)
+    if _is_runner_binary_available():
         skip_json = json.dumps({
             "action": "pulling latest action runner",
             "status": "skipped",
-            "message": "Runner binary already available and digest verified, skipping download",
-            "digest": expected_digest,
+            "message": "Runner binary already available, skipping download",
         })
         yield f"{skip_json}\n"
     else:
+        latest_release = _get_latest_release()
+        if not latest_release or not latest_release.get("download_url"):
+            error_json = json.dumps({
+                "action": "error",
+                "message": "Could not find latest runner release",
+            })
+            yield f"{error_json}\n"
+            return
+        
         runners_dir = os.path.join(settings.VOLUME_PATH, "runner")
         filename = "actions-runner-linux-x64.tar.gz"
         filepath = os.path.join(runners_dir, filename)
