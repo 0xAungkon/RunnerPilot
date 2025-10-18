@@ -20,7 +20,7 @@ class PrerequisiteCheck(BaseModel):
 
 class PrerequisitesResponse(BaseModel):
     checks: List[PrerequisiteCheck]
-    global_status: bool
+    status: bool
 
 
 def get_cpu_architecture() -> str:
@@ -147,4 +147,4 @@ def check_prerequisites() -> PrerequisitesResponse:
     # Global status is True only if all mandatory checks pass
     global_status = all(check.status for check in checks if check.mandatory)
 
-    return PrerequisitesResponse(checks=checks, global_status=global_status)
+    return PrerequisitesResponse(checks=checks, status=global_status)
