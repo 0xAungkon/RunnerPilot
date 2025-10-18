@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from inc.auth import AuthorizedUser, authorized_user
 from pydantic import BaseModel
 from typing import Any, List, Literal
 from models import Meta
@@ -6,6 +7,7 @@ from inc.utils.serialization import (
     serialize_meta_value as _serialize_meta_value,
     deserialize_meta_value as _deserialize_meta_value,
 )
+from fastapi import Depends
 
 router = APIRouter()
 
@@ -36,7 +38,7 @@ def _deserialize_value(raw: str, meta_type: MetaType) -> Any:
 
 
 @router.post("/", response_model=MetaOut)
-def create_meta(item: MetaIn):
+def create_meta(item: MetaIn, user: AuthorizedUser = Depends(authorized_user)):
     raw = _serialize_value(item.meta_value, item.meta_type)
     # Upsert: update if exists, else create
     existing = Meta.get_or_none(Meta.meta_key == item.meta_key)
@@ -54,13 +56,13 @@ def create_meta(item: MetaIn):
 
 
 @router.get("/", response_model=List[MetaOut])
-def list_meta():
+def list_meta(auth_user: AuthorizedUser = Depends(authorized_user)):
     rows = list(Meta.select().dicts())
     return [MetaOut(meta_key=r["meta_key"], meta_value=_deserialize_value(r["meta_value"], r["meta_type"]), meta_type=r["meta_type"]) for r in rows]
 
 
 @router.get("/{key}", response_model=MetaOut)
-def get_meta(key: str):
+def get_meta(key: str, user: AuthorizedUser = Depends(authorized_user)):
     row = Meta.get_or_none(Meta.meta_key == key)
     if not row:
         raise HTTPException(status_code=404, detail="Meta not found")
