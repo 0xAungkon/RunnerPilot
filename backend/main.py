@@ -13,12 +13,13 @@ async def startup_event():
 	init_db()
 
 
-from routers import auth, common
+from routers import auth, common, prerequisites
 from routers import runners_release, runner_instance
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(common.router, prefix="/common", tags=["common"])
+app.include_router(prerequisites.router, tags=["system"], include_in_schema=True)
 
 # Only include meta router in development environment
 if is_dev():
