@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from routers import meta
+from inc.config import is_dev
 
 app = FastAPI()
 
@@ -13,8 +14,14 @@ async def startup_event():
 
 
 from routers import auth, common
+from routers import runners_release
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(common.router, prefix="/common", tags=["common"])
-app.include_router(meta.router, prefix="/meta", tags=["meta"])
+
+# Only include meta router in development environment
+if is_dev():
+	app.include_router(meta.router, prefix="/meta", tags=["meta"])
+
+app.include_router(runners_release.router, tags=["runners"], include_in_schema=True)

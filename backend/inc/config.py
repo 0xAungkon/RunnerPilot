@@ -7,8 +7,15 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "changeme"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     ALGORITHM: str = "HS256"
+    ENVIRONMENT: str = "production"
+    VOLUME_PATH: str = "/volume"
 
     class Config:
         env_file = ".env"
 
 settings = Settings()
+
+
+def is_dev() -> bool:
+    """Check if the application is running in development environment."""
+    return settings.ENVIRONMENT.lower() == "development"

@@ -29,32 +29,33 @@ class AuthorizedUser(BaseModel):
 
 _bearer_scheme = HTTPBearer(auto_error=True)
 
+def authorized_user():
+    pass
+# def authorized_user(credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme)) -> AuthorizedUser:
+#     token = credentials.credentials
+#     try:
+#         payload = decode_access_token(token)
+#         # Normalize exp to datetime if necessary
+#         exp_value = payload.get("exp")
+#         if isinstance(exp_value, (int, float)):
+#             exp_dt = datetime.utcfromtimestamp(int(exp_value))
+#         elif isinstance(exp_value, str):
+#             # best-effort parse ISO; fall back to error
+#             try:
+#                 exp_dt = datetime.fromisoformat(exp_value)
+#             except Exception as _:
+#                 raise HTTPException(status_code=401, detail="Invalid token expiration format")
+#         elif isinstance(exp_value, datetime):
+#             exp_dt = exp_value
+#         else:
+#             raise HTTPException(status_code=401, detail="Missing token expiration")
 
-def authorized_user(credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme)) -> AuthorizedUser:
-    token = credentials.credentials
-    try:
-        payload = decode_access_token(token)
-        # Normalize exp to datetime if necessary
-        exp_value = payload.get("exp")
-        if isinstance(exp_value, (int, float)):
-            exp_dt = datetime.utcfromtimestamp(int(exp_value))
-        elif isinstance(exp_value, str):
-            # best-effort parse ISO; fall back to error
-            try:
-                exp_dt = datetime.fromisoformat(exp_value)
-            except Exception as _:
-                raise HTTPException(status_code=401, detail="Invalid token expiration format")
-        elif isinstance(exp_value, datetime):
-            exp_dt = exp_value
-        else:
-            raise HTTPException(status_code=401, detail="Missing token expiration")
+#         sub = payload.get("sub")
+#         if not sub:
+#             raise HTTPException(status_code=401, detail="Missing subject in token")
 
-        sub = payload.get("sub")
-        if not sub:
-            raise HTTPException(status_code=401, detail="Missing subject in token")
-
-        return AuthorizedUser(sub=sub, exp=exp_dt)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
+#         return AuthorizedUser(sub=sub, exp=exp_dt)
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         raise HTTPException(status_code=401, detail=str(e))
