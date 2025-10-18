@@ -1,8 +1,7 @@
-from peewee import AutoField, CharField, TextField
+from peewee import CharField, TextField
 from inc.helpers.model import BaseModel
 
 class Meta(BaseModel):
-    id = AutoField(primary_key=True)
-    meta_key = CharField(unique=True)
+    meta_key = CharField(primary_key=True)
     meta_value = TextField(null=True)
     meta_type = CharField()
