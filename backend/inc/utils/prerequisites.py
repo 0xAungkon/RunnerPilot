@@ -53,33 +53,20 @@ def is_docker_available() -> bool:
         return False
 
 
-def is_ubuntu_image_available() -> bool:
-    """Check if ubuntu:latest Docker image is available"""
+def is_gh_runner_image_available() -> bool:
+    """Check if 0xaungkon/gh-runner:latest Docker image is available"""
     if not is_docker_available():
         return False
     try:
         client = docker.from_env()
         images = client.images.list()
         for image in images:
-            # Check if any tag matches ubuntu:latest or just ubuntu
+            # Check if any tag matches 0xaungkon/gh-runner:latest
             if image.tags:
                 for tag in image.tags:
-                    if "ubuntu" in tag and ("latest" in tag or tag.endswith("ubuntu")):
+                    if tag == "0xaungkon/gh-runner:latest":
                         return True
         return False
-    except Exception:
-        return False
-
-
-def is_runner_image_available() -> bool:
-    """Check if any runner image is available in the runners/releases directory"""
-    try:
-        runners_dir = os.path.join(settings.VOLUME_PATH, "runner")
-        if not os.path.exists(runners_dir):
-            return False
-        files = os.listdir(runners_dir)
-        # Check if there are any files in the directory
-        return len(files) > 0
     except Exception:
         return False
 
@@ -146,34 +133,21 @@ def check_prerequisites() -> PrerequisitesResponse:
         )
     )
 
-    # Check 5: Ubuntu Docker Image Available
-    ubuntu_image_available = is_ubuntu_image_available()
+    # Check 5: GitHub Runner Docker Image Available
+    gh_runner_image_available = is_gh_runner_image_available()
     checks.append(
         PrerequisiteCheck(
-            key="ubuntu_docker_image",
-            status=ubuntu_image_available,
-            message="ubuntu:latest Docker image is available"
-            if ubuntu_image_available
-            else "ubuntu:latest Docker image is not available",
-            mandatory=False,
-        )
-    )
-
-    # Check 6: Runner Image Available
-    runner_image_available = is_runner_image_available()
-    checks.append(
-        PrerequisiteCheck(
-            key="runner_image_available",
-            status=runner_image_available,
-            message="Runner image is available in runners/releases directory"
-            if runner_image_available
-            else "No runner image found in runners/releases directory",
+            key="gh_runner_docker_image",
+            status=gh_runner_image_available,
+            message="0xaungkon/gh-runner:latest Docker image is available"
+            if gh_runner_image_available
+            else "0xaungkon/gh-runner:latest Docker image is not available",
             mandatory=False,
         )
     )
 
     # Global status is True only if all MANDATORY checks pass
-    # ubuntu_docker_image and runner_image_available do not affect global status
+    # gh_runner_docker_image does not affect global status
     global_status = all(check.status for check in checks if check.mandatory)
 
     return PrerequisitesResponse(checks=checks, status=global_status)
