@@ -99,7 +99,7 @@ def _execute_command_stream(instance_id: int, cmd: str) -> Any:
 
 # -------- Routes ----------
 
-@router.get("/runners/instance", response_model=List[RunnerInstanceOut])
+@router.get("/runner", response_model=List[RunnerInstanceOut])
 async def list_instances(user: AuthorizedUser = Depends(authorized_user)):
     """List all runner instances."""
     try:
@@ -122,7 +122,7 @@ async def list_instances(user: AuthorizedUser = Depends(authorized_user)):
         raise HTTPException(status_code=500, detail=f"Failed to list instances: {str(e)}")
 
 
-@router.post("/runners/instance", response_model=RunnerInstanceOut)
+@router.post("/runner", response_model=RunnerInstanceOut)
 async def create_instance(
     payload: CreateRunnerInstanceIn,
     user: AuthorizedUser = Depends(authorized_user),
@@ -148,7 +148,7 @@ async def create_instance(
         raise HTTPException(status_code=500, detail=f"Failed to create instance: {str(e)}")
 
 
-@router.delete("/runners/instance/{instance_id}")
+@router.delete("/runner/{instance_id}")
 async def delete_instance(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
@@ -164,7 +164,7 @@ async def delete_instance(
         raise HTTPException(status_code=500, detail=f"Failed to delete instance: {str(e)}")
 
 
-@router.post("/runners/instance/{instance_id}/clone")
+@router.post("/runner/{instance_id}/clone")
 async def clone_instance(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
@@ -185,7 +185,7 @@ async def clone_instance(
         raise HTTPException(status_code=500, detail=f"Failed to clone instance: {str(e)}")
 
 
-@router.get("/runners/instance/{instance_id}/logs")
+@router.get("/runner/{instance_id}/logs")
 async def get_instance_logs(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
@@ -206,7 +206,7 @@ async def get_instance_logs(
         raise HTTPException(status_code=500, detail=f"Failed to get logs: {str(e)}")
 
 
-@router.post("/runners/instance/{instance_id}/rebuild")
+@router.post("/runner/{instance_id}/rebuild")
 async def rebuild_instance(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
@@ -227,7 +227,7 @@ async def rebuild_instance(
         raise HTTPException(status_code=500, detail=f"Failed to rebuild instance: {str(e)}")
 
 
-@router.post("/runners/instance/{instance_id}/start")
+@router.post("/runner/{instance_id}/start")
 async def start_instance(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
@@ -248,7 +248,7 @@ async def start_instance(
         raise HTTPException(status_code=500, detail=f"Failed to start instance: {str(e)}")
 
 
-@router.post("/runners/instance/{instance_id}/stop")
+@router.post("/runner/{instance_id}/stop")
 async def stop_instance(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
@@ -273,7 +273,7 @@ class ExecuteCommandIn(BaseModel):
     command: str
 
 
-@router.post("/runners/instance/{instance_id}/command")
+@router.post("/runner/{instance_id}/command")
 async def execute_command(
     instance_id: int,
     payload: ExecuteCommandIn,
