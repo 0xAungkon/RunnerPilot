@@ -17,7 +17,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { jwtDecode } from "jwt-decode"
-import apiClient from "@/lib/api/client"
+import apiClient from "@/lib/apiClient"
 
 // --------------------
 // Types & Interfaces
