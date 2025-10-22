@@ -297,7 +297,7 @@ async def clone_instance(
         for i in range(count):
             try:
                 # Generate unique runner name for each clone
-                clone_base_name = f"{instance.runner_name}-clone"
+                clone_base_name = instance.runner_name.split("-")[0]
                 clone_runner_name = RunnerInstance.generate_runner_name(clone_base_name)
                 
                 # Create database record
