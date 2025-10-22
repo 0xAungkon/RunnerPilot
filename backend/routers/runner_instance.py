@@ -495,6 +495,47 @@ async def stop_instance(
         raise HTTPException(status_code=500, detail=f"Failed to stop instance: {str(e)}")
 
 
+@router.post("/runner/{instance_id}/restart")
+async def restart_instance(
+    instance_id: int,
+    user: AuthorizedUser = Depends(authorized_user),
+):
+    """Restart a runner instance (stop and start)."""
+    try:
+        instance = RunnerInstance.get_by_id(instance_id)
+        
+        if not DOCKER_AVAILABLE:
+            raise HTTPException(status_code=500, detail="Docker is not available")
+        
+        try:
+            client = docker.from_env()
+            
+            try:
+                container = client.containers.get(instance.runner_name)
+                
+                # Stop the container
+                container.stop()
+                
+                # Start the container again
+                container.start()
+                
+                return {
+                    "status": "restarted",
+                    "message": "Container restarted successfully",
+                    "instance_id": instance_id,
+                    "container_id": container.id,
+                    "container_status": "running",
+                }
+            except docker.errors.NotFound:
+                raise HTTPException(status_code=404, detail=f"Container not found for instance {instance_id}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Docker error: {str(e)}")
+    except RunnerInstance.DoesNotExist:
+        raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to restart instance: {str(e)}")
+
+
 @router.post("/runner/{instance_id}/logs/clear")
 async def clear_instance_logs(
     instance_id: int,
