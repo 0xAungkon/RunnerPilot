@@ -6,7 +6,6 @@
  */
 
 import { client as sdkClient } from './api/client.gen';
-import type { Config } from './api/client/types.gen';
 
 /**
  * Initialize and configure the API client with:
@@ -17,13 +16,9 @@ import type { Config } from './api/client/types.gen';
 export const initializeApiClient = () => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-  const config: Config = {
+  sdkClient.setConfig({
     baseUrl: baseUrl,
-    // Set default response style to 'fields' to get more control over errors
-    responseStyle: 'fields',
-  };
-
-  sdkClient.setConfig(config);
+  });
 
   // Setup request interceptor to inject auth token
   sdkClient.interceptors.request.use((request) => {
@@ -36,10 +31,10 @@ export const initializeApiClient = () => {
     return request;
   });
 
-  // Setup error interceptor for token expiry and error handling
-  sdkClient.interceptors.error.use((error, response) => {
+  // Setup response interceptor for token expiry and error handling
+  sdkClient.interceptors.response.use((response) => {
     // Check if error response has 401 status (Unauthorized)
-    if (response?.status === 401) {
+    if (response.status === 401) {
       // Token expired or invalid
       localStorage.removeItem('access_token');
       localStorage.removeItem('user_profile');
@@ -50,7 +45,7 @@ export const initializeApiClient = () => {
       }
     }
 
-    return error;
+    return response;
   });
 };
 

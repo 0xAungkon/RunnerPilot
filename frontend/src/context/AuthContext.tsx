@@ -17,7 +17,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 import { jwtDecode } from "jwt-decode"
-import apiClient from "@/lib/apiClient"
+import { meCommonMeGet } from "@/lib/api"
 
 // --------------------
 // Types & Interfaces
@@ -102,7 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch profile from API, cache in localStorage
   const fetchProfile = useCallback(async () => {
     try {
-      const response = await apiClient.get("common/profile")
+      const response = await meCommonMeGet()
       setProfile(response.data)
       localStorage.setItem("user_profile", JSON.stringify(response.data))
       localStorage.setItem("user_profile_time", Date.now().toString())

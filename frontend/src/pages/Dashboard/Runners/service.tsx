@@ -1,5 +1,3 @@
-import apiClient from "@/lib/api/client";
-
 interface OnboardingApiParams {
 	
 	lastname: string;

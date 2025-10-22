@@ -24,8 +24,8 @@ const LoginPage: React.FC = () => {
         setLoading(true);
         const res = await loginApi(form);
         setLoading(false);
-        if (res.success) {
-            login(res.data.accessToken);
+        if (res.success && res.data) {
+            login(res.data.access_token);
             toast.success("Login successful!");
             navigate(routes.dashboard);
         } else {
