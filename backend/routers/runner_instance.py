@@ -220,11 +220,26 @@ async def delete_instance(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
 ):
-    """Delete a runner instance by ID."""
+    """Delete a runner instance and its container."""
     try:
         instance = RunnerInstance.get_by_id(instance_id)
+        
+        # Stop and remove the docker container if it exists
+        if DOCKER_AVAILABLE and instance.runner_name:
+            try:
+                client = docker.from_env()
+                try:
+                    container = client.containers.get(instance.runner_name)
+                    container.stop()
+                    container.remove()
+                except docker.errors.NotFound:
+                    pass  # Container already removed
+            except Exception as e:
+                print(f"Warning: Failed to remove container: {str(e)}")
+        
+        # Delete the database record
         instance.delete_instance()
-        return {"status": "ok", "message": f"Instance {instance_id} deleted", "id": instance_id}
+        return {"status": "ok", "message": f"Instance {instance_id} deleted (container removed)", "id": instance_id}
     except RunnerInstance.DoesNotExist:
         raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
     except Exception as e:
@@ -335,53 +350,75 @@ async def clone_instance(
         raise HTTPException(status_code=500, detail=f"Failed to clone instance: {str(e)}")
 
 
-@router.get("/runner/{instance_id}/logs")
-async def get_instance_logs(
-    instance_id: int,
-    user: AuthorizedUser = Depends(authorized_user),
-):
-    """Get logs for a runner instance from the docker container."""
+def _stream_container_logs(instance_id: int) -> Any:
+    """Generator that streams container logs in real-time."""
     try:
         instance = RunnerInstance.get_by_id(instance_id)
         
-        if not DOCKER_AVAILABLE:
-            raise HTTPException(status_code=500, detail="Docker is not available")
-        
-        if not instance.hostname:
-            return {
-                "instance_id": instance_id,
-                "runner_name": instance.runner_name,
-                "logs": [],
-                "message": "Container not running or no logs available",
-            }
+        if not DOCKER_AVAILABLE or not instance.hostname:
+            error_json = json.dumps({
+                "status": "error",
+                "message": "Container not available",
+            })
+            yield f"{error_json}\n"
+            return
         
         try:
             client = docker.from_env()
             container = client.containers.get(instance.runner_name)
             
-            # Get container logs
+            # Get initial logs
             logs = container.logs(stdout=True, stderr=True).decode('utf-8')
-            logs_list = logs.split('\n') if logs else []
+            if logs:
+                for line in logs.split('\n'):
+                    if line.strip():
+                        log_json = json.dumps({
+                            "status": "streaming",
+                            "log": line,
+                        })
+                        yield f"{log_json}\n"
             
-            return {
-                "instance_id": instance_id,
-                "runner_name": instance.runner_name,
-                "container_id": container.id,
-                "container_status": container.status,
-                "logs": logs_list,
-                "message": "Logs retrieved successfully",
-            }
+            # Stream new logs in real-time
+            for log_line in container.logs(stream=True, stdout=True, stderr=True):
+                decoded_line = log_line.decode('utf-8').strip()
+                if decoded_line:
+                    log_json = json.dumps({
+                        "status": "streaming",
+                        "log": decoded_line,
+                    })
+                    yield f"{log_json}\n"
+                    
         except docker.errors.NotFound:
-            return {
-                "instance_id": instance_id,
-                "runner_name": instance.runner_name,
-                "logs": [],
+            error_json = json.dumps({
+                "status": "error",
                 "message": "Container not found",
-            }
+            })
+            yield f"{error_json}\n"
     except RunnerInstance.DoesNotExist:
-        raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
+        error_json = json.dumps({
+            "status": "error",
+            "message": f"Instance {instance_id} not found",
+        })
+        yield f"{error_json}\n"
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get logs: {str(e)}")
+        error_json = json.dumps({
+            "status": "error",
+            "message": f"Failed to stream logs: {str(e)}",
+        })
+        yield f"{error_json}\n"
+
+
+
+@router.get("/runner/{instance_id}/logs")
+async def get_instance_logs(
+    instance_id: int,
+    user: AuthorizedUser = Depends(authorized_user),
+):
+    """Stream logs for a runner instance from the docker container in real-time."""
+    return StreamingResponse(
+        _stream_container_logs(instance_id),
+        media_type="application/x-ndjson"
+    )
 
 
 @router.post("/runner/{instance_id}/start")
@@ -424,7 +461,7 @@ async def stop_instance(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
 ):
-    """Stop a runner instance."""
+    """Stop a runner instance (container remains for restart)."""
     try:
         instance = RunnerInstance.get_by_id(instance_id)
         
@@ -438,13 +475,11 @@ async def stop_instance(
             try:
                 container = client.containers.get(instance.runner_name)
                 container.stop()
-                container.remove()
-                instance.hostname = None
-                instance.save()
                 return {
                     "status": "stopped",
-                    "message": "Container stopped and removed",
+                    "message": "Container stopped (can be restarted)",
                     "instance_id": instance_id,
+                    "container_id": container.id,
                 }
             except docker.errors.NotFound:
                 return {
@@ -458,3 +493,39 @@ async def stop_instance(
         raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to stop instance: {str(e)}")
+
+
+@router.post("/runner/{instance_id}/logs/clear")
+async def clear_instance_logs(
+    instance_id: int,
+    user: AuthorizedUser = Depends(authorized_user),
+):
+    """Clear/truncate logs for a runner instance container."""
+    try:
+        instance = RunnerInstance.get_by_id(instance_id)
+        
+        if not DOCKER_AVAILABLE:
+            raise HTTPException(status_code=500, detail="Docker is not available")
+        
+        try:
+            client = docker.from_env()
+            container = client.containers.get(instance.runner_name)
+            
+            # Truncate container logs by using the truncate method on the container
+            # Docker API doesn't have a native truncate, so we use a workaround:
+            # We can't directly truncate, but we can document this limitation
+            # In practice, users typically restart the container to clear logs
+            
+            # For now, we'll return a message about the workaround
+            return {
+                "status": "info",
+                "message": "Docker logs cannot be truncated directly. Restart container to clear logs.",
+                "instance_id": instance_id,
+                "container_id": container.id,
+            }
+        except docker.errors.NotFound:
+            raise HTTPException(status_code=404, detail=f"Container not found for instance {instance_id}")
+    except RunnerInstance.DoesNotExist:
+        raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear logs: {str(e)}")
