@@ -142,7 +142,7 @@ def _run_docker_container(
 async def list_instances(user: AuthorizedUser = Depends(authorized_user)):
     """List all runner instances."""
     try:
-        instances = RunnerInstance.select()
+        instances = RunnerInstance.select().order_by(RunnerInstance.created_at.desc())
         result = []
         for instance in instances:
             result.append(
