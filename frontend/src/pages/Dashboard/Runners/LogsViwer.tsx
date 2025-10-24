@@ -83,20 +83,61 @@ export default function LogsPopup({ open, onClose, instanceId }: LogsPopupProps)
       if (!instanceId) return
 
       setIsClearing(true)
-      const result = await clearRunnerLogsApi(instanceId)
-      if (result.success) {
-        setLogs([])
-        toast.success("Logs cleared successfully")
-      } else {
-        toast.error(result.message || "Failed to clear logs", {
-          style: {
-            background: "#fee2e2",
-            color: "#991b1b",
-            border: "1px solid #fecaca",
-          },
-        })
+      try {
+        const result = await clearRunnerLogsApi(instanceId)
+        if (result.success) {
+          setLogs([])
+          toast.success("Logs cleared successfully")
+          
+          // Restart the log stream after clearing
+          if (abortControllerRef.current) {
+            abortControllerRef.current.abort()
+          }
+          
+          // Small delay to ensure the clear completes
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Restart logs stream
+          abortControllerRef.current = new AbortController()
+          for await (const logEntry of getRunnerLogsApi(instanceId, abortControllerRef.current.signal)) {
+            if (logEntry.status === "error") {
+              toast.error(logEntry.message || "Failed to fetch logs", {
+                style: {
+                  background: "#fee2e2",
+                  color: "#991b1b",
+                  border: "1px solid #fecaca",
+                },
+              })
+              break
+            }
+
+            if (logEntry.log) {
+              setLogs((prevLogs) => [...prevLogs, logEntry.log])
+            }
+          }
+        } else {
+          toast.error(result.message || "Failed to clear logs", {
+            style: {
+              background: "#fee2e2",
+              color: "#991b1b",
+              border: "1px solid #fecaca",
+            },
+          })
+        }
+      } catch (error: any) {
+        if (error.name !== "AbortError") {
+          console.error("Error clearing logs:", error)
+          toast.error("Failed to clear logs", {
+            style: {
+              background: "#fee2e2",
+              color: "#991b1b",
+              border: "1px solid #fecaca",
+            },
+          })
+        }
+      } finally {
+        setIsClearing(false)
       }
-      setIsClearing(false)
     }
 
 

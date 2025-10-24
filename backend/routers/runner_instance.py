@@ -548,7 +548,7 @@ async def clear_instance_logs(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
 ):
-    """Clear/truncate logs for a runner instance container."""
+    """Clear logs for a runner instance container by truncating the log file."""
     try:
         instance = RunnerInstance.get_by_id(instance_id)
         
@@ -559,18 +559,46 @@ async def clear_instance_logs(
             client = docker.from_env()
             container = client.containers.get(instance.runner_name)
             
-            # Truncate container logs by using the truncate method on the container
-            # Docker API doesn't have a native truncate, so we use a workaround:
-            # We can't directly truncate, but we can document this limitation
-            # In practice, users typically restart the container to clear logs
+            # Get the container's log file path
+            container_info = container.attrs
+            log_config = container_info.get("LogDriver", "json-file")
             
-            # For now, we'll return a message about the workaround
-            return {
-                "status": "info",
-                "message": "Docker logs cannot be truncated directly. Restart container to clear logs.",
-                "instance_id": instance_id,
-                "container_id": container.id,
-            }
+            if log_config == "json-file":
+                # Get the log file path from container inspect
+                log_path = container_info.get("LogPath")
+                
+                if log_path:
+                    try:
+                        # Truncate the log file by opening it in write mode (empty the file)
+                        with open(log_path, 'w') as f:
+                            pass  # This will truncate the file to 0 bytes
+                        
+                        return {
+                            "status": "success",
+                            "message": "Container logs cleared successfully",
+                            "instance_id": instance_id,
+                            "container_id": container.id,
+                        }
+                    except PermissionError:
+                        raise HTTPException(
+                            status_code=409,
+                            detail="Permission denied: Cannot clear logs (may require root/sudo access)"
+                        )
+                    except Exception as e:
+                        raise HTTPException(
+                            status_code=409,
+                            detail=f"Failed to truncate log file: {str(e)}"
+                        )
+                else:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Could not determine log file path"
+                    )
+            else:
+                raise HTTPException(
+                    status_code=501,
+                    detail=f"Log driver '{log_config}' is not supported for clearing logs"
+                )
         except docker.errors.NotFound:
             raise HTTPException(status_code=404, detail=f"Container not found for instance {instance_id}")
     except RunnerInstance.DoesNotExist:

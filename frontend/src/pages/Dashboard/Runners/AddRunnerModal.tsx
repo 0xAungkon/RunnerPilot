@@ -217,7 +217,7 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
             <Label>Access Token</Label>
             <Input
               name="token"
-              placeholder="Enter GitHub PAT (Personal Access Token)"
+              placeholder="Enter GitHub Runner Token"
               type="password"
               value={formData.token}
               onChange={handleInputChange}

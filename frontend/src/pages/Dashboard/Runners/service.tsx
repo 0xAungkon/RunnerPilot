@@ -6,6 +6,7 @@ import {
   stopInstanceRunnerInstanceIdStopPost,
   restartInstanceRunnerInstanceIdRestartPost,
   clearInstanceLogsRunnerInstanceIdLogsClearPost,
+  cloneInstanceRunnerInstanceIdClonePost,
 } from "@/lib/api"
 import type { RunnerInstanceOut } from "@/lib/api"
 
@@ -228,6 +229,29 @@ export async function clearRunnerLogsApi(instance_id: number) {
     return { success: false, message: response.error?.detail || "Failed to clear logs" }
   } catch (error: any) {
     const detail = error?.message || "Failed to clear logs"
+    return { success: false, message: detail }
+  }
+}
+
+export async function cloneRunnerApi(instance_id: number, count: number, token?: string) {
+  try {
+    const response = await cloneInstanceRunnerInstanceIdClonePost({
+      path: {
+        instance_id,
+      },
+      body: {
+        count,
+        token: token || undefined,
+      },
+    })
+
+    if (response.data) {
+      return { success: true, data: response.data, message: "Runner cloned successfully" }
+    }
+
+    return { success: false, message: response.error?.detail || "Failed to clone runner" }
+  } catch (error: any) {
+    const detail = error?.message || "Failed to clone runner"
     return { success: false, message: detail }
   }
 }

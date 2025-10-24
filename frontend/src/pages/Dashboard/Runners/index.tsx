@@ -32,6 +32,7 @@ export default function MachineList() {
   const [searchQuery, setSearchQuery] = useState("")
   const [openAdd, setOpenAdd] = useState(false)
   const [openClone, setOpenClone] = useState(false)
+  const [selectedInstanceForClone, setSelectedInstanceForClone] = useState<number | null>(null)
   const [openLogs, setOpenLogs] = useState(false)
   const [selectedInstanceForLogs, setSelectedInstanceForLogs] = useState<number | null>(null)
   const [machines, setMachines] = useState<any[]>([])
@@ -263,7 +264,7 @@ export default function MachineList() {
       {/* Runner Name + Hostname + Labels */}
       <div >
         <div className="font-medium text-foreground truncate text-lg capitalize flex items-center gap-2">
-          {machine.runner_name.replace(/-/g, " ")}
+          {machine.runner_name.replace(/-/g, " ")} <sup className="text-gray-500 text-sm">{machine.id}</sup>
           <a
             href={machine.github_url}
             target="_blank"
@@ -392,7 +393,10 @@ export default function MachineList() {
             >
               {actionLoading === machine.id ? "Deleting..." : "Delete"}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setOpenClone(true)}>
+            <DropdownMenuItem onClick={() => {
+              setSelectedInstanceForClone(machine.id)
+              setOpenClone(true)
+            }}>
               Clone
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -412,7 +416,20 @@ export default function MachineList() {
           setLastActivity(Date.now())
         }}
       />
-      <CloneRunnerModal open={openClone} onOpenChange={setOpenClone} />
+      <CloneRunnerModal 
+        open={openClone} 
+        onOpenChange={(v) => {
+          setOpenClone(v)
+          if (!v) {
+            setSelectedInstanceForClone(null)
+          }
+        }}
+        instanceId={selectedInstanceForClone ?? undefined}
+        onSuccess={() => {
+          fetchRunners()
+          setLastActivity(Date.now())
+        }}
+      />
       <LogsPopup 
         open={openLogs} 
         onClose={() => {
