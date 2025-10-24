@@ -23,18 +23,22 @@ import {
 
 import AddRunnerModal from "./AddRunnerModal"
 import CloneRunnerModal from "./CloneRunnerModal"
-import { listRunnersApi, startRunnerApi, stopRunnerApi, restartRunnerApi } from "./service"
+import LogsPopup from "./LogsViwer"
+
+import { listRunnersApi, startRunnerApi, stopRunnerApi, restartRunnerApi, deleteRunnerApi } from "./service"
 
 export default function MachineList() {
   const [statusFilter, setStatusFilter] = useState("All")
   const [searchQuery, setSearchQuery] = useState("")
   const [openAdd, setOpenAdd] = useState(false)
   const [openClone, setOpenClone] = useState(false)
+  const [openLogs, setOpenLogs] = useState(false)
+  const [selectedInstanceForLogs, setSelectedInstanceForLogs] = useState<number | null>(null)
   const [machines, setMachines] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [lastActivity, setLastActivity] = useState(Date.now())
   const [actionLoading, setActionLoading] = useState<number | null>(null)
-  const table_column_grid_template = "2fr_1.4fr_1.5fr_0.5fr_1.5fr_0.4fr_0.2fr"
+
 
   const fetchRunners = async () => {
     setIsLoading(true)
@@ -42,6 +46,7 @@ export default function MachineList() {
     if (result.success) {
       setMachines(result.data)
     } else {
+      console.log(result)
       toast.error(result.message || "Failed to fetch runners", {
         style: {
           background: "#fee2e2",
@@ -109,6 +114,26 @@ export default function MachineList() {
     }
     setActionLoading(null)
   }
+
+  const handleDeleteRunner = async (instance_id: number) => {
+    setActionLoading(instance_id)
+    const result = await deleteRunnerApi(instance_id)
+    if (result.success) {
+      toast.success("Runner deleted successfully")
+      await fetchRunners()
+      setLastActivity(Date.now())
+    } else {
+      toast.error(result.message || "Failed to delete runner", {
+        style: {
+          background: "#fee2e2",
+          color: "#991b1b",
+          border: "1px solid #fecaca",
+        },
+      })
+    }
+    setActionLoading(null)
+  }
+
 
   // Initial fetch
   useEffect(() => {
@@ -196,7 +221,7 @@ export default function MachineList() {
       </div>
 
       {/* List Header */}
-     <div className={`grid grid-cols-[${table_column_grid_template}] text-xs font-medium text-muted-foreground border-b border-border pb-2 mb-1`}>
+     <div style={{ gridTemplateColumns: "2fr 1.4fr 1.5fr 0.5fr 1.5fr 0.4fr 0.2fr" }} className={`grid text-xs font-medium text-muted-foreground border-b border-border pb-2 mb-1`}>
   <div>Runner</div>
   <div>Hostname</div>
   <div>Token</div>
@@ -225,7 +250,8 @@ export default function MachineList() {
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: idx * 0.04 }}
-      className={`relative grid grid-cols-[${table_column_grid_template}] items-center py-2.5 hover:bg-muted/40 transition-colors`}
+      style={{ gridTemplateColumns: "2fr 1.4fr 1.5fr 0.5fr 1.5fr 0.4fr 0.2fr" }} 
+      className={`relative grid items-center py-2.5 hover:bg-muted/40 transition-colors`}
     >
       {actionLoading === machine.id && (
         <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded flex items-center justify-center z-40">
@@ -352,8 +378,20 @@ export default function MachineList() {
             >
               {actionLoading === machine.id ? "Restarting..." : "Restart"}
             </DropdownMenuItem>
-            <DropdownMenuItem>Logs</DropdownMenuItem>
-            <DropdownMenuItem>Delete</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setSelectedInstanceForLogs(machine.id)
+                setOpenLogs(true)
+              }}
+            >
+              Logs
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleDeleteRunner(machine.id)}
+              disabled={actionLoading === machine.id}
+            >
+              {actionLoading === machine.id ? "Deleting..." : "Delete"}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setOpenClone(true)}>
               Clone
             </DropdownMenuItem>
@@ -375,6 +413,14 @@ export default function MachineList() {
         }}
       />
       <CloneRunnerModal open={openClone} onOpenChange={setOpenClone} />
+      <LogsPopup 
+        open={openLogs} 
+        onClose={() => {
+          setOpenLogs(false)
+          setSelectedInstanceForLogs(null)
+        }}
+        instanceId={selectedInstanceForLogs ?? undefined}
+      />
     </div>
   )
 }
