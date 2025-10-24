@@ -135,6 +135,84 @@ export async function restartRunnerApi(instance_id: number) {
   }
 }
 
+export async function* getRunnerLogsApi(instance_id: number, signal?: AbortSignal) {
+  try {
+    // Get auth token from localStorage
+    const token = localStorage.getItem("access_token")
+    if (!token) {
+      yield {
+        status: "error",
+        message: "Authentication token not found"
+      }
+      return
+    }
+
+    // Fetch directly from the API endpoint for real-time streaming
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"
+    const response = await fetch(`${baseUrl}/runner/${instance_id}/logs`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/x-ndjson",
+      },
+      signal: signal,
+    })
+
+    if (!response.ok) {
+      yield {
+        status: "error",
+        message: `Failed to fetch logs: HTTP ${response.status}`
+      }
+      return
+    }
+
+    const reader = response.body?.getReader()
+    if (!reader) {
+      yield {
+        status: "error",
+        message: "Failed to get response reader"
+      }
+      return
+    }
+
+    const decoder = new TextDecoder()
+    let buffer = ""
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split("\n")
+        buffer = lines.pop() || ""
+
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const parsed = JSON.parse(line)
+              yield parsed
+            } catch {
+              // If not JSON, treat as plain log line
+              yield { status: "streaming", log: line }
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
+  } catch (error: any) {
+    // Don't yield error if aborted (user closed modal)
+    if (error.name !== "AbortError") {
+      yield {
+        status: "error",
+        message: error?.message || "Failed to fetch logs"
+      }
+    }
+  }
+}
+
 export async function clearRunnerLogsApi(instance_id: number) {
   try {
     const response = await clearInstanceLogsRunnerInstanceIdLogsClearPost({

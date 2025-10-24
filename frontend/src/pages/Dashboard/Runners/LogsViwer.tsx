@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { X, Trash2, LoaderCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { clearRunnerLogsApi } from "./service"
+import { getRunnerLogsApi, clearRunnerLogsApi } from "./service"
 
 interface LogsPopupProps {
   open: boolean
@@ -36,57 +36,20 @@ export default function LogsPopup({ open, onClose, instanceId }: LogsPopupProps)
         abortControllerRef.current = new AbortController()
 
         try {
-          const response = await fetch(`/api/runner/${instanceId}/logs`, {
-            method: "GET",
-            headers: {
-              "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
-            },
-            signal: abortControllerRef.current.signal,
-          })
+          for await (const logEntry of getRunnerLogsApi(instanceId, abortControllerRef.current.signal)) {
+            if (logEntry.status === "error") {
+              toast.error(logEntry.message || "Failed to fetch logs", {
+                style: {
+                  background: "#fee2e2",
+                  color: "#991b1b",
+                  border: "1px solid #fecaca",
+                },
+              })
+              break
+            }
 
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          }
-
-          const reader = response.body?.getReader()
-          if (!reader) {
-            throw new Error("Failed to get response reader")
-          }
-
-          const decoder = new TextDecoder()
-          let buffer = ""
-
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            buffer += decoder.decode(value, { stream: true })
-            const lines = buffer.split("\n")
-            buffer = lines.pop() || ""
-
-            for (const line of lines) {
-              if (line.trim()) {
-                try {
-                  const parsed = JSON.parse(line)
-                  if (parsed.status === "error") {
-                    toast.error(parsed.message || "Failed to fetch logs", {
-                      style: {
-                        background: "#fee2e2",
-                        color: "#991b1b",
-                        border: "1px solid #fecaca",
-                      },
-                    })
-                    break
-                  }
-                  
-                  if (parsed.log) {
-                    setLogs((prevLogs) => [...prevLogs, parsed.log])
-                  }
-                } catch (e) {
-                  // If not JSON, treat as plain log line
-                  setLogs((prevLogs) => [...prevLogs, line])
-                }
-              }
+            if (logEntry.log) {
+              setLogs((prevLogs) => [...prevLogs, logEntry.log])
             }
           }
         } catch (error: any) {
