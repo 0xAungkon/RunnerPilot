@@ -10,8 +10,10 @@ import {
   Plus,
   MoreVertical,
   ChevronDown,
-  Link2Icon
+  Link2Icon,
+  LoaderCircle
 } from "lucide-react"
+import { toast } from "sonner"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -39,6 +41,14 @@ export default function MachineList() {
     const result = await listRunnersApi()
     if (result.success) {
       setMachines(result.data)
+    } else {
+      toast.error(result.message || "Failed to fetch runners", {
+        style: {
+          background: "#fee2e2",
+          color: "#991b1b",
+          border: "1px solid #fecaca",
+        },
+      })
     }
     setIsLoading(false)
   }
@@ -47,8 +57,17 @@ export default function MachineList() {
     setActionLoading(instance_id)
     const result = await startRunnerApi(instance_id)
     if (result.success) {
+      toast.success("Runner started successfully")
       await fetchRunners()
       setLastActivity(Date.now())
+    } else {
+      toast.error(result.message || "Failed to start runner", {
+        style: {
+          background: "#fee2e2",
+          color: "#991b1b",
+          border: "1px solid #fecaca",
+        },
+      })
     }
     setActionLoading(null)
   }
@@ -57,8 +76,17 @@ export default function MachineList() {
     setActionLoading(instance_id)
     const result = await stopRunnerApi(instance_id)
     if (result.success) {
+      toast.success("Runner stopped successfully")
       await fetchRunners()
       setLastActivity(Date.now())
+    } else {
+      toast.error(result.message || "Failed to stop runner", {
+        style: {
+          background: "#fee2e2",
+          color: "#991b1b",
+          border: "1px solid #fecaca",
+        },
+      })
     }
     setActionLoading(null)
   }
@@ -67,8 +95,17 @@ export default function MachineList() {
     setActionLoading(instance_id)
     const result = await restartRunnerApi(instance_id)
     if (result.success) {
+      toast.success("Runner restarted successfully")
       await fetchRunners()
       setLastActivity(Date.now())
+    } else {
+      toast.error(result.message || "Failed to restart runner", {
+        style: {
+          background: "#fee2e2",
+          color: "#991b1b",
+          border: "1px solid #fecaca",
+        },
+      })
     }
     setActionLoading(null)
   }
@@ -169,10 +206,17 @@ export default function MachineList() {
 </div>
 
       {/* Machine Rows */}
-<div className="divide-y divide-border text-xs ">
-  {isLoading ? (
-    <div className="py-8 text-center text-muted-foreground">Loading runners...</div>
-  ) : filteredMachines.length === 0 ? (
+<div className="relative divide-y divide-border text-xs min-h-96">
+  {isLoading && (
+    <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded flex items-center justify-center z-50">
+      <div className="flex flex-col items-center justify-center gap-2">
+        <LoaderCircle className="w-8 h-8 animate-spin text-foreground" />
+        <span className="text-sm text-muted-foreground">Loading runners...</span>
+      </div>
+    </div>
+  )}
+  
+  {!isLoading && filteredMachines.length === 0 ? (
     <div className="py-8 text-center text-muted-foreground">No runners found</div>
   ) : (
     filteredMachines.map((machine, idx) => (
@@ -181,8 +225,15 @@ export default function MachineList() {
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay: idx * 0.04 }}
-      className={`grid grid-cols-[${table_column_grid_template}] items-center py-2.5 hover:bg-muted/40 transition-colors`}
+      className={`relative grid grid-cols-[${table_column_grid_template}] items-center py-2.5 hover:bg-muted/40 transition-colors`}
     >
+      {actionLoading === machine.id && (
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded flex items-center justify-center z-40">
+          <div className="flex flex-col items-center justify-center gap-2">
+            <LoaderCircle className="w-6 h-6 animate-spin text-foreground" />
+          </div>
+        </div>
+      )}
       {/* Runner Name + Hostname + Labels */}
       <div >
         <div className="font-medium text-foreground truncate text-lg capitalize flex items-center gap-2">

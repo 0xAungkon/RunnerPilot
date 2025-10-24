@@ -426,30 +426,37 @@ async def start_instance(
     instance_id: int,
     user: AuthorizedUser = Depends(authorized_user),
 ):
-    """Start a runner instance."""
+    """Start an existing runner instance container."""
     try:
         instance = RunnerInstance.get_by_id(instance_id)
         
-        # Try to run the docker container
-        success, message, container_id = _run_docker_container(
-            runner_name=instance.runner_name,
-            github_url=instance.github_url,
-            token=instance.token,
-            labels=instance.labels,
-        )
+        if not DOCKER_AVAILABLE:
+            raise HTTPException(status_code=500, detail="Docker is not available")
         
-        if success:
-            # Update hostname with container ID
-            instance.hostname = container_id
-            instance.save()
+        try:
+            client = docker.from_env()
+            
+            # Get existing container by runner_name
+            container = client.containers.get(instance.runner_name)
+            
+            # Start the container
+            container.start()
+            
+            # Update the instance hostname with container ID if not already set
+            if not instance.hostname or instance.hostname != container.id:
+                instance.hostname = container.id
+                instance.save()
+            
             return {
                 "status": "started",
-                "message": message,
+                "message": "Container started successfully",
                 "instance_id": instance_id,
-                "container_id": container_id,
+                "container_id": container.id,
             }
-        else:
-            raise HTTPException(status_code=500, detail=f"Failed to start container: {message}")
+        except docker.errors.NotFound:
+            raise HTTPException(status_code=404, detail=f"Container '{instance.runner_name}' not found")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Docker error: {str(e)}")
     except RunnerInstance.DoesNotExist:
         raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
     except Exception as e:
