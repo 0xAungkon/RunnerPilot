@@ -1,9 +1,19 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from routers import meta
 from inc.config import is_dev
 import json, random
 
 app = FastAPI()
+
+# Configure CORS with wildcard
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Wildcard to allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
@@ -23,8 +33,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(common.router, prefix="/common", tags=["common"])
 app.include_router(system.router, prefix="/system", tags=["system"])
 
-
-with open("jokes.json", "r") as f:
+with open("volumn/jokes.json", "r") as f:
 	_jokes = json.load(f)
 
 @app.get("/", tags=["root"])
