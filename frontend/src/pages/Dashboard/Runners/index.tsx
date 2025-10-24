@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,57 +21,93 @@ import {
 
 import AddRunnerModal from "./AddRunnerModal"
 import CloneRunnerModal from "./CloneRunnerModal"
-
-const machines =  [
-  {
-    "id": 1,
-    "runner_name": "gh-runner-ubuntu-01",
-    "github_url": "https://github.com/orgs/example-org/actions/runners/1",
-    "token": "ghr_1A2b3C4d5E6f7G8h9I0j",
-    "labels": "ubuntu-latest,x64,self-hosted",
-    "hostname": "runner-ubuntu-01.example.com",
-    "created_at": "2025-10-24T10:30:45Z",
-    "status": "active"
-  },
-  {
-    "id": 2,
-    "runner_name": "gh-runner-windows-02",
-    "github_url": "https://github.com/orgs/example-org/actions/runners/2",
-    "token": "ghr_9Z8y7X6w5V4u3T2s1R0q",
-    "labels": "windows-latest,x64,self-hosted",
-    "hostname": "runner-windows-02.example.com",
-    "created_at": "2025-10-23T09:15:20Z",
-    "status": "error"
-  },
-  {
-    "id": 3,
-    "runner_name": "gh-runner-macos-03",
-    "github_url": "https://github.com/orgs/example-org/actions/runners/3",
-    "token": "ghr_A1b2C3d4E5f6G7h8I9j0",
-    "labels": "macos-latest,arm64,self-hosted",
-    "hostname": "runner-macos-03.example.com",
-    "created_at": "2025-10-22T14:50:10Z",
-    "status": "stopped"
-  },
-  {
-    "id": 4,
-    "runner_name": "gh-runner-linux-04",
-    "github_url": "https://github.com/orgs/example-org/actions/runners/4",
-    "token": "ghr_Q1w2E3r4T5y6U7i8O9p0",
-    "labels": "linux,x64,self-hosted",
-    "hostname": "runner-linux-04.example.com",
-    "created_at": "2025-10-21T12:05:33Z",
-    "status": "stopped"
-  }
-]
-
+import { listRunnersApi, startRunnerApi, stopRunnerApi, restartRunnerApi } from "./service"
 
 export default function MachineList() {
   const [statusFilter, setStatusFilter] = useState("All")
   const [searchQuery, setSearchQuery] = useState("")
   const [openAdd, setOpenAdd] = useState(false)
   const [openClone, setOpenClone] = useState(false)
+  const [machines, setMachines] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [lastActivity, setLastActivity] = useState(Date.now())
+  const [actionLoading, setActionLoading] = useState<number | null>(null)
   const table_column_grid_template = "2fr_1.4fr_1.5fr_0.5fr_1.5fr_0.4fr_0.2fr"
+
+  const fetchRunners = async () => {
+    setIsLoading(true)
+    const result = await listRunnersApi()
+    if (result.success) {
+      setMachines(result.data)
+    }
+    setIsLoading(false)
+  }
+
+  const handleStartRunner = async (instance_id: number) => {
+    setActionLoading(instance_id)
+    const result = await startRunnerApi(instance_id)
+    if (result.success) {
+      await fetchRunners()
+      setLastActivity(Date.now())
+    }
+    setActionLoading(null)
+  }
+
+  const handleStopRunner = async (instance_id: number) => {
+    setActionLoading(instance_id)
+    const result = await stopRunnerApi(instance_id)
+    if (result.success) {
+      await fetchRunners()
+      setLastActivity(Date.now())
+    }
+    setActionLoading(null)
+  }
+
+  const handleRestartRunner = async (instance_id: number) => {
+    setActionLoading(instance_id)
+    const result = await restartRunnerApi(instance_id)
+    if (result.success) {
+      await fetchRunners()
+      setLastActivity(Date.now())
+    }
+    setActionLoading(null)
+  }
+
+  // Initial fetch
+  useEffect(() => {
+    fetchRunners()
+  }, [])
+
+  // Auto-refresh every 1 minute if no user activity
+  useEffect(() => {
+    const handleUserActivity = () => {
+      setLastActivity(Date.now())
+    }
+
+    // Add event listeners for user activity
+    window.addEventListener("click", handleUserActivity)
+    window.addEventListener("keydown", handleUserActivity)
+    window.addEventListener("mousemove", handleUserActivity)
+
+    // Set up auto-refresh interval
+    const refreshInterval = setInterval(() => {
+      const now = Date.now()
+      const inactiveSeconds = (now - lastActivity) / 1000
+      
+      // Refresh if user has been inactive for 60 seconds
+      if (inactiveSeconds >= 60) {
+        fetchRunners()
+        setLastActivity(now)
+      }
+    }, 5000) // Check every 5 seconds
+
+    return () => {
+      window.removeEventListener("click", handleUserActivity)
+      window.removeEventListener("keydown", handleUserActivity)
+      window.removeEventListener("mousemove", handleUserActivity)
+      clearInterval(refreshInterval)
+    }
+  }, [lastActivity])
 
   const filteredMachines = machines.filter((machine) => {
     const matchesSearch = machine.runner_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -134,7 +170,12 @@ export default function MachineList() {
 
       {/* Machine Rows */}
 <div className="divide-y divide-border text-xs ">
-  {filteredMachines.map((machine, idx) => (
+  {isLoading ? (
+    <div className="py-8 text-center text-muted-foreground">Loading runners...</div>
+  ) : filteredMachines.length === 0 ? (
+    <div className="py-8 text-center text-muted-foreground">No runners found</div>
+  ) : (
+    filteredMachines.map((machine, idx) => (
     <motion.div
       key={idx}
       initial={{ opacity: 0, y: 5 }}
@@ -157,7 +198,7 @@ export default function MachineList() {
           </a>
         </div>
         <div className="flex flex-wrap gap-1 mt-2">
-        {machine.labels.split(",").map((label, i) => (
+        {machine.labels.split(",").map((label: string, i: number) => (
           <Badge key={i} variant="secondary" className="text-[10px] px-2 py-0">
             {label.trim()}
           </Badge>
@@ -167,7 +208,19 @@ export default function MachineList() {
 
       {/* GitHub URL */}
       <div className="truncate">
-          {machine.hostname}
+            {machine.hostname ? (
+              <span
+                title={machine.hostname}
+                onClick={() => navigator.clipboard.writeText(machine.hostname)}
+                className="cursor-pointer"
+              >
+                {machine.hostname.length > 12
+                  ? machine.hostname.slice(0, 12) + "…"
+                  : machine.hostname}
+              </span>
+            ) : (
+              <span className="text-muted-foreground italic">N/A</span>
+            )}
       </div>
 
       <div className="truncate">
@@ -230,9 +283,24 @@ export default function MachineList() {
             <MoreVertical className="w-4 h-4 text-muted-foreground cursor-pointer" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>Start</DropdownMenuItem>
-            <DropdownMenuItem>Stop</DropdownMenuItem>
-            <DropdownMenuItem>Restart</DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleStartRunner(machine.id)}
+              disabled={actionLoading === machine.id}
+            >
+              {actionLoading === machine.id ? "Starting..." : "Start"}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleStopRunner(machine.id)}
+              disabled={actionLoading === machine.id}
+            >
+              {actionLoading === machine.id ? "Stopping..." : "Stop"}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => handleRestartRunner(machine.id)}
+              disabled={actionLoading === machine.id}
+            >
+              {actionLoading === machine.id ? "Restarting..." : "Restart"}
+            </DropdownMenuItem>
             <DropdownMenuItem>Logs</DropdownMenuItem>
             <DropdownMenuItem>Delete</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setOpenClone(true)}>
@@ -242,11 +310,19 @@ export default function MachineList() {
         </DropdownMenu>
       </div>
     </motion.div>
-  ))}
+    ))
+  )}
 </div>
 
       {/* Modals */}
-      <AddRunnerModal open={openAdd} onOpenChange={setOpenAdd} />
+      <AddRunnerModal 
+        open={openAdd} 
+        onOpenChange={setOpenAdd}
+        onSuccess={() => {
+          fetchRunners()
+          setLastActivity(Date.now())
+        }}
+      />
       <CloneRunnerModal open={openClone} onOpenChange={setOpenClone} />
     </div>
   )
