@@ -8,7 +8,6 @@ import { useAuth } from "@/context/AuthContext";
 import ErrorPage from "./pages/ErrorPage";
 import LoginPage from "@/pages/Authentication/Login";
 import TestPage from "./pages/Dashboard/Test";  
-import RegistrationPage from "./pages/Authentication/Registration";
 import AuthLayout from "./components/layouts/AuthLayout";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import OverviewPage from "./pages/Dashboard/Overview";
@@ -59,11 +58,6 @@ const AppRoutes: React.FC = () => {
         <Route element={<AuthLayout title="Login" />}>
           <Route element={<LoginPage />} path={routes.login} />
         </Route>
-
-        <Route element={<AuthLayout title="Register" />}>
-          <Route element={<RegistrationPage />} path={routes.register} />
-        </Route>
-
         <Route>
           <Route element={<TestPage />} path={routes.test} />
         </Route>

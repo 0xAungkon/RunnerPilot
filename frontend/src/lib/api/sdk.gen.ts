@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ClearInstanceLogsRunnerInstanceIdLogsClearPostData, ClearInstanceLogsRunnerInstanceIdLogsClearPostErrors, ClearInstanceLogsRunnerInstanceIdLogsClearPostResponses, CloneInstanceRunnerInstanceIdClonePostData, CloneInstanceRunnerInstanceIdClonePostErrors, CloneInstanceRunnerInstanceIdClonePostResponses, CreateInstanceRunnerPostData, CreateInstanceRunnerPostErrors, CreateInstanceRunnerPostResponses, CreateMetaMetaPostData, CreateMetaMetaPostErrors, CreateMetaMetaPostResponses, DeleteInstanceRunnerInstanceIdDeleteData, DeleteInstanceRunnerInstanceIdDeleteErrors, DeleteInstanceRunnerInstanceIdDeleteResponses, GetInstanceLogsRunnerInstanceIdLogsGetData, GetInstanceLogsRunnerInstanceIdLogsGetErrors, GetInstanceLogsRunnerInstanceIdLogsGetResponses, GetMetaMetaKeyGetData, GetMetaMetaKeyGetErrors, GetMetaMetaKeyGetResponses, GetPrerequisitesSystemPrerequisitesGetData, GetPrerequisitesSystemPrerequisitesGetResponses, ListInstancesRunnerGetData, ListInstancesRunnerGetResponses, ListMetaMetaGetData, ListMetaMetaGetResponses, LoginAuthLoginPostData, LoginAuthLoginPostErrors, LoginAuthLoginPostResponses, MeCommonMeGetData, MeCommonMeGetResponses, RestartInstanceRunnerInstanceIdRestartPostData, RestartInstanceRunnerInstanceIdRestartPostErrors, RestartInstanceRunnerInstanceIdRestartPostResponses, SetupSystemSystemSetupPostData, SetupSystemSystemSetupPostResponses, StartInstanceRunnerInstanceIdStartPostData, StartInstanceRunnerInstanceIdStartPostErrors, StartInstanceRunnerInstanceIdStartPostResponses, StopInstanceRunnerInstanceIdStopPostData, StopInstanceRunnerInstanceIdStopPostErrors, StopInstanceRunnerInstanceIdStopPostResponses, UpdateInstanceRunnerInstanceIdPutData, UpdateInstanceRunnerInstanceIdPutErrors, UpdateInstanceRunnerInstanceIdPutResponses } from './types.gen';
+import type { ClearInstanceLogsRunnerInstanceIdLogsClearPostData, ClearInstanceLogsRunnerInstanceIdLogsClearPostErrors, ClearInstanceLogsRunnerInstanceIdLogsClearPostResponses, CloneInstanceRunnerInstanceIdClonePostData, CloneInstanceRunnerInstanceIdClonePostErrors, CloneInstanceRunnerInstanceIdClonePostResponses, CreateInstanceRunnerPostData, CreateInstanceRunnerPostErrors, CreateInstanceRunnerPostResponses, DeleteInstanceRunnerInstanceIdDeleteData, DeleteInstanceRunnerInstanceIdDeleteErrors, DeleteInstanceRunnerInstanceIdDeleteResponses, GetInstanceLogsRunnerInstanceIdLogsGetData, GetInstanceLogsRunnerInstanceIdLogsGetErrors, GetInstanceLogsRunnerInstanceIdLogsGetResponses, GetPrerequisitesSystemPrerequisitesGetData, GetPrerequisitesSystemPrerequisitesGetResponses, ListInstancesRunnerGetData, ListInstancesRunnerGetResponses, LoginAuthLoginPostData, LoginAuthLoginPostErrors, LoginAuthLoginPostResponses, MeCommonMeGetData, MeCommonMeGetResponses, RestartInstanceRunnerInstanceIdRestartPostData, RestartInstanceRunnerInstanceIdRestartPostErrors, RestartInstanceRunnerInstanceIdRestartPostResponses, RootGetData, RootGetResponses, SetupSystemSystemSetupPostData, SetupSystemSystemSetupPostResponses, StartInstanceRunnerInstanceIdStartPostData, StartInstanceRunnerInstanceIdStartPostErrors, StartInstanceRunnerInstanceIdStartPostResponses, StopInstanceRunnerInstanceIdStopPostData, StopInstanceRunnerInstanceIdStopPostErrors, StopInstanceRunnerInstanceIdStopPostResponses, UpdateInstanceRunnerInstanceIdPutData, UpdateInstanceRunnerInstanceIdPutErrors, UpdateInstanceRunnerInstanceIdPutResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -82,53 +82,11 @@ export const setupSystemSystemSetupPost = <ThrowOnError extends boolean = false>
 };
 
 /**
- * List Meta
+ * Root
  */
-export const listMetaMetaGet = <ThrowOnError extends boolean = false>(options?: Options<ListMetaMetaGetData, ThrowOnError>) => {
-    return (options?.client ?? client).get<ListMetaMetaGetResponses, unknown, ThrowOnError>({
-        security: [
-            {
-                scheme: 'bearer',
-                type: 'http'
-            }
-        ],
-        url: '/meta/',
-        ...options
-    });
-};
-
-/**
- * Create Meta
- */
-export const createMetaMetaPost = <ThrowOnError extends boolean = false>(options: Options<CreateMetaMetaPostData, ThrowOnError>) => {
-    return (options.client ?? client).post<CreateMetaMetaPostResponses, CreateMetaMetaPostErrors, ThrowOnError>({
-        security: [
-            {
-                scheme: 'bearer',
-                type: 'http'
-            }
-        ],
-        url: '/meta/',
-        ...options,
-        headers: {
-            'Content-Type': 'application/json',
-            ...options.headers
-        }
-    });
-};
-
-/**
- * Get Meta
- */
-export const getMetaMetaKeyGet = <ThrowOnError extends boolean = false>(options: Options<GetMetaMetaKeyGetData, ThrowOnError>) => {
-    return (options.client ?? client).get<GetMetaMetaKeyGetResponses, GetMetaMetaKeyGetErrors, ThrowOnError>({
-        security: [
-            {
-                scheme: 'bearer',
-                type: 'http'
-            }
-        ],
-        url: '/meta/{key}',
+export const rootGet = <ThrowOnError extends boolean = false>(options?: Options<RootGetData, ThrowOnError>) => {
+    return (options?.client ?? client).get<RootGetResponses, unknown, ThrowOnError>({
+        url: '/',
         ...options
     });
 };

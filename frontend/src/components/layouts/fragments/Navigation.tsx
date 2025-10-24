@@ -3,11 +3,6 @@
 import {
   BarChart,
   Server,
-  Layers,
-  FileText, // changed for Event Logs
-  LifeBuoy,
-  Users,
-  Settings,
   BookOpen,
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"

@@ -79,42 +79,6 @@ export type LoginRequest = {
 };
 
 /**
- * MetaIn
- */
-export type MetaIn = {
-    /**
-     * Meta Key
-     */
-    meta_key: string;
-    /**
-     * Meta Value
-     */
-    meta_value: unknown;
-    /**
-     * Meta Type
-     */
-    meta_type: 'string' | 'int' | 'bool' | 'list' | 'json';
-};
-
-/**
- * MetaOut
- */
-export type MetaOut = {
-    /**
-     * Meta Key
-     */
-    meta_key: string;
-    /**
-     * Meta Value
-     */
-    meta_value: unknown;
-    /**
-     * Meta Type
-     */
-    meta_type: 'string' | 'int' | 'bool' | 'list' | 'json';
-};
-
-/**
  * PrerequisiteCheck
  */
 export type PrerequisiteCheck = {
@@ -301,78 +265,19 @@ export type SetupSystemSystemSetupPostResponses = {
     200: unknown;
 };
 
-export type ListMetaMetaGetData = {
+export type RootGetData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/meta/';
+    url: '/';
 };
 
-export type ListMetaMetaGetResponses = {
-    /**
-     * Response List Meta Meta  Get
-     *
-     * Successful Response
-     */
-    200: Array<MetaOut>;
-};
-
-export type ListMetaMetaGetResponse = ListMetaMetaGetResponses[keyof ListMetaMetaGetResponses];
-
-export type CreateMetaMetaPostData = {
-    body: MetaIn;
-    path?: never;
-    query?: never;
-    url: '/meta/';
-};
-
-export type CreateMetaMetaPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type CreateMetaMetaPostError = CreateMetaMetaPostErrors[keyof CreateMetaMetaPostErrors];
-
-export type CreateMetaMetaPostResponses = {
+export type RootGetResponses = {
     /**
      * Successful Response
      */
-    200: MetaOut;
+    200: unknown;
 };
-
-export type CreateMetaMetaPostResponse = CreateMetaMetaPostResponses[keyof CreateMetaMetaPostResponses];
-
-export type GetMetaMetaKeyGetData = {
-    body?: never;
-    path: {
-        /**
-         * Key
-         */
-        key: string;
-    };
-    query?: never;
-    url: '/meta/{key}';
-};
-
-export type GetMetaMetaKeyGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetMetaMetaKeyGetError = GetMetaMetaKeyGetErrors[keyof GetMetaMetaKeyGetErrors];
-
-export type GetMetaMetaKeyGetResponses = {
-    /**
-     * Successful Response
-     */
-    200: MetaOut;
-};
-
-export type GetMetaMetaKeyGetResponse = GetMetaMetaKeyGetResponses[keyof GetMetaMetaKeyGetResponses];
 
 export type ListInstancesRunnerGetData = {
     body?: never;
