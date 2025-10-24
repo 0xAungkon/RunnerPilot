@@ -32,3 +32,5 @@ def setup_system():
         setup_streaming_generator(),
         media_type="application/x-ndjson"
     )
+
+

@@ -118,3 +118,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+label{
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+
+button{
+  cursor: pointer;
+}
+
+[data-slot="dropdown-menu-item"] {
+  cursor: pointer;
+}

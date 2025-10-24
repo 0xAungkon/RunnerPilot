@@ -25,8 +25,8 @@ const DashboardLayout: FC<DashboardLayoutProps> = ({ title, subtitle, link }) =>
 
       {/* Main */}
       <main className="py-10 max-w-7xl mx-auto px-6">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-semibold">{title}</h1>
+        <div className="">
+          <h1 className="mb-2 text-3xl font-semibold px-6">{title}</h1>
           {subtitle && (
             <p className="text-muted-foreground text-sm">
               {subtitle}

@@ -54,8 +54,8 @@ export default function Header() {
                 onClick={() => setTheme(theme === "light" ? "dark" : "light")}
                 className="flex items-center gap-2 cursor-pointer"
               >
-                {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                {theme === "light" ? "Light Mode" : "Dark Mode"}
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
               </DropdownMenuItem>
 
               <DropdownMenuItem
