@@ -21,30 +21,101 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
     token: "",
     labels: "",
   })
-  const [error, setError] = useState("")
+  const [errors, setErrors] = useState({
+    runner_name: "",
+    github_url: "",
+    token: "",
+    labels: "",
+  })
+
+  // Validation functions
+  const validateRunnerName = (value: string): string => {
+    if (!value.trim()) {
+      return "Runner name is required"
+    }
+    if (!/^[a-z0-9-]+$/.test(value)) {
+      return "Only lowercase letters, numbers, and hyphens are allowed"
+    }
+    if (value.startsWith("-") || value.endsWith("-")) {
+      return "Runner name cannot start or end with a hyphen"
+    }
+    return ""
+  }
+
+  const validateGithubUrl = (value: string): string => {
+    if (!value.trim()) {
+      return "GitHub URL is required"
+    }
+    const githubUrlRegex = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/
+    if (!githubUrlRegex.test(value)) {
+      return "Please enter a valid GitHub URL (e.g., https://github.com/username/repo)"
+    }
+    return ""
+  }
+
+  const validateToken = (value: string): string => {
+    if (!value.trim()) {
+      return "Access token is required"
+    }
+    return ""
+  }
+
+  const validateLabels = (value: string): string => {
+    if (!value.trim()) {
+      return ""
+    }
+    if (value.includes(" ")) {
+      return "Labels cannot contain spaces. Use commas to separate labels"
+    }
+    return ""
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
+    let processedValue = value
+
+    // Auto-convert runner name to lowercase with hyphens
+    if (name === "runner_name") {
+      processedValue = value.toLowerCase().replace(/\s+/g, "-")
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: processedValue,
+    }))
+
+    // Real-time validation
+    let error = ""
+    if (name === "runner_name") {
+      error = validateRunnerName(processedValue)
+    } else if (name === "github_url") {
+      error = validateGithubUrl(processedValue)
+    } else if (name === "token") {
+      error = validateToken(processedValue)
+    } else if (name === "labels") {
+      error = validateLabels(processedValue)
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      [name]: error,
     }))
   }
 
   const handleSubmit = async () => {
-    setError("")
+    // Validate all fields
+    const newErrors = {
+      runner_name: validateRunnerName(formData.runner_name),
+      github_url: validateGithubUrl(formData.github_url),
+      token: validateToken(formData.token),
+      labels: validateLabels(formData.labels),
+    }
 
-    // Validate form
-    if (!formData.runner_name.trim()) {
-      setError("Runner name is required")
-      return
-    }
-    if (!formData.github_url.trim()) {
-      setError("GitHub URL is required")
-      return
-    }
-    if (!formData.token.trim()) {
-      setError("Access token is required")
+    setErrors(newErrors)
+
+    // Check if there are any errors
+    const hasErrors = Object.values(newErrors).some((error) => error !== "")
+    if (hasErrors) {
       return
     }
 
@@ -64,10 +135,19 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
         token: "",
         labels: "",
       })
+      setErrors({
+        runner_name: "",
+        github_url: "",
+        token: "",
+        labels: "",
+      })
       onOpenChange(false)
       onSuccess?.()
     } else {
-      setError(result.message || "Failed to create runner")
+      setErrors((prev) => ({
+        ...prev,
+        runner_name: result.message || "Failed to create runner",
+      }))
     }
     setIsLoading(false)
   }
@@ -81,10 +161,19 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
         token: "",
         labels: "",
       })
-      setError("")
+      setErrors({
+        runner_name: "",
+        github_url: "",
+        token: "",
+        labels: "",
+      })
     }
     onOpenChange(newOpen)
   }
+
+  // Check if form is valid
+  const isFormValid = Object.values(errors).every((error) => error === "") &&
+    Object.values(formData).some((value) => value.trim() !== "")
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -94,12 +183,6 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
           <div className="space-y-1">
             <Label>Runner Name</Label>
             <Input
@@ -108,7 +191,11 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
               value={formData.runner_name}
               onChange={handleInputChange}
               disabled={isLoading}
+              className={errors.runner_name ? "border-red-500" : ""}
             />
+            {errors.runner_name && (
+              <p className="text-red-500 text-sm">{errors.runner_name}</p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -119,7 +206,11 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
               value={formData.github_url}
               onChange={handleInputChange}
               disabled={isLoading}
+              className={errors.github_url ? "border-red-500" : ""}
             />
+            {errors.github_url && (
+              <p className="text-red-500 text-sm">{errors.github_url}</p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -131,7 +222,11 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
               value={formData.token}
               onChange={handleInputChange}
               disabled={isLoading}
+              className={errors.token ? "border-red-500" : ""}
             />
+            {errors.token && (
+              <p className="text-red-500 text-sm">{errors.token}</p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -142,7 +237,11 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
               value={formData.labels}
               onChange={handleInputChange}
               disabled={isLoading}
+              className={errors.labels ? "border-red-500" : ""}
             />
+            {errors.labels && (
+              <p className="text-red-500 text-sm">{errors.labels}</p>
+            )}
           </div>
         </div>
 
@@ -154,7 +253,7 @@ export default function AddRunnerModal({ open, onOpenChange, onSuccess }: AddRun
           >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading}>
+          <Button onClick={handleSubmit} disabled={isLoading || !isFormValid}>
             {isLoading ? "Adding..." : "Add Runner"}
           </Button>
         </DialogFooter>
