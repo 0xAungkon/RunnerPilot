@@ -4,7 +4,6 @@ import type { FC } from "react"
 import { Outlet } from "react-router-dom"
 import Header from "./fragments/Header"
 import Navigation from "./fragments/Navigation"
-import { useTheme } from "next-themes"
 
 interface DashboardLayoutProps {
   title: string
@@ -13,7 +12,6 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: FC<DashboardLayoutProps> = ({ title, subtitle, link }) => {
-  const { theme } = useTheme()
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">

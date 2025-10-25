@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,21 +11,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  Server,
-  Grid3x3,
-  Wrench,
-  Users,
-  Lock,
-  FileText,
-  Globe,
-  Settings,
-  BookOpen,
   Search,
   Filter,
   Download,
   MoreVertical,
   ChevronDown,
-  HelpCircle,
   Info,
   Circle,
 } from "lucide-react"
