@@ -25,7 +25,7 @@ export async function listRunnersApi() {
       return { success: true, data: response.data as RunnerInstanceOut[] }
     }
 
-    return { success: false, message: response.error?.detail || "Failed to fetch runners", data: [] }
+    return { success: false, message: (response as any)?.error?.detail || "Failed to fetch runners", data: [] }
   } catch (error: any) {
     
     const detail = error?.detail || "Failed to fetch runners"
