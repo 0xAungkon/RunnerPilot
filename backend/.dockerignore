@@ -1,53 +1,69 @@
-# Git
-.git
-.gitignore
-.github
-
-# Docker
-.docker
-compose.yml
-docker-compose.*.yml
-
 # Python
-__pycache__/
-app.egg-info
+__pycache__
 *.py[cod]
 *$py.class
 *.so
 .Python
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-.hypothesis/
-.egg-info/
-.installed.cfg
-*.egg
-.mypy_cache
-
-# Virtual environment
-.venv/
 env/
 venv/
 ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# VS Code
+# IDE
 .vscode/
-.history/
-
-# PyCharm
 .idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+README.md
+LICENSE
+
+# Node modules (if any frontend is included)
+node_modules/
+npm-debug.log
 
 # Database
-*.db
 *.sqlite3
-*.sqlite
+*.db
 
 # Logs
-logs/
 *.log
 
-# OS specific
-.DS_Store
-Thumbs.db
+# Temporary files
+.tmp/
+temp/
+
+

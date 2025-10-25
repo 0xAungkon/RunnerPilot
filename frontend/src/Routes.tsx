@@ -8,8 +8,6 @@ import { useAuth } from "@/context/AuthContext";
 import ErrorPage from "./pages/ErrorPage";
 import LoginPage from "@/pages/Authentication/Login";
 import TestPage from "./pages/Dashboard/Test";  
-import Sample from "./pages/Dashboard/Sample";
-import RegistrationPage from "./pages/Authentication/Registration";
 import AuthLayout from "./components/layouts/AuthLayout";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import OverviewPage from "./pages/Dashboard/Overview";
@@ -59,12 +57,8 @@ const AppRoutes: React.FC = () => {
     <Routes>
         <Route element={<AuthLayout title="Login" />}>
           <Route element={<LoginPage />} path={routes.login} />
+          <Route element={<LoginPage />} path="/" />
         </Route>
-
-        <Route element={<AuthLayout title="Register" />}>
-          <Route element={<RegistrationPage />} path={routes.register} />
-        </Route>
-
         <Route>
           <Route element={<TestPage />} path={routes.test} />
         </Route>
@@ -103,18 +97,16 @@ const AppRoutes: React.FC = () => {
         <Route element={<PreviewOrSignPage />} path={routes.sign} />
       </Route> */}
 
-      <Route>
-        <Route
-          element={
-            <ErrorPage 
-              title="Page Not Found"
-              smallTitle="404 ERROR"
-              description="The page you're looking for doesn't exist."
-            />
-          }
-          path="*"
-        />
-            </Route>
+      <Route
+        element={
+          <ErrorPage 
+            title="Page Not Found"
+            smallTitle="404 ERROR"
+            description="The page you're looking for doesn't exist."
+          />
+        }
+        path="*"
+      />
     </Routes>
   );
 };

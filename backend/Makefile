@@ -47,7 +47,7 @@ cleanInfra:
 	make dev-up
 
 run:
-	$(PYTHON) -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+	$(PYTHON) -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 test:
 	$(PYTHON) -m pytest -v 
