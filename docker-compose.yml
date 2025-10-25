@@ -12,8 +12,10 @@ services:
       - backend
     networks:
       - runner-pilot-network
-    expose:
-      - "80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3001/api/
+    # ports:
+    #   - "4173:4173"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
@@ -49,15 +51,15 @@ services:
       dockerfile: Dockerfile
     container_name: runner-pilot-backend
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
     environment:
       # FastAPI Configuration
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=info
       
       # Database Configuration
-      - DATABASE_URL=sqlite:///./app/volumn/db.sqlite3
+      - DATABASE_URL=sqlite:///./volumn/db.sqlite3
       
       # Runner Configuration
       - VOLUME_PATH=/app/volumn

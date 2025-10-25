@@ -14,7 +14,7 @@ import { client as sdkClient } from './api/client.gen';
  * - Error handling for expired tokens
  */
 export const initializeApiClient = () => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL;
 
   sdkClient.setConfig({
     baseUrl: baseUrl,

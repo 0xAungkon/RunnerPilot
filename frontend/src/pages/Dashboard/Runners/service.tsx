@@ -149,7 +149,7 @@ export async function* getRunnerLogsApi(instance_id: number, signal?: AbortSigna
     }
 
     // Fetch directly from the API endpoint for real-time streaming
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"
+    const baseUrl = import.meta.env.VITE_API_BASE_URL 
     const response = await fetch(`${baseUrl}/runner/${instance_id}/logs`, {
       method: "GET",
       headers: {
