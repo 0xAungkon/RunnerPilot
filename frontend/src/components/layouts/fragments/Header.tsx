@@ -1,9 +1,7 @@
 "use client"
 
-import * as React from "react"
-import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Grid3x3, LogOut, HelpCircle, Moon, Sun, CheckIcon, ChevronsUpDownIcon, Server } from "lucide-react"
+import { LogOut, Moon, Sun, Server } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import {
   DropdownMenu,
@@ -11,28 +9,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
-import { cn } from "@/lib/utils"
 import { useTheme } from "@/components/providers/ThemeProvider"
 
 export default function Header() {
   const { theme, setTheme } = useTheme()
   const { profile, logout } = useAuth()
-  const email = profile?.email || ""
+  const email = profile?.sub || ""
   const firstName = profile?.first_name || ""
   const lastName = profile?.last_name || ""
+  
 
   const fallback =
     firstName && lastName
@@ -40,15 +25,6 @@ export default function Header() {
       : email
       ? email[0].toUpperCase()
       : "U"
-
-  // Workspace data
-  const workspaces = [
-    { value: "workspace_a", label: "Workspace A" },
-    { value: "workspace_b", label: "Workspace B" },
-    { value: "workspace_c", label: "Workspace C" },
-  ]
-  const [selectedWorkspace, setSelectedWorkspace] = React.useState(workspaces[0].value)
-  const [workspacePopoverOpen, setWorkspacePopoverOpen] = React.useState(false)
 
   return (
     <header className="border-b border-gray-800 px-6 py-3">
@@ -61,60 +37,6 @@ export default function Header() {
 
         {/* Right Side */}
         <div className="flex items-center gap-3">
-          
-
-          {/* Workspace Combobox */}
-          <Popover open={workspacePopoverOpen} onOpenChange={setWorkspacePopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={workspacePopoverOpen}
-                className="w-[180px] justify-between text-sm"
-              >
-                {workspaces.find((ws) => ws.value === selectedWorkspace)?.label}
-                <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[180px] p-0">
-              <Command>
-                <CommandInput placeholder="Search workspace..." />
-                <CommandList>
-                  <CommandEmpty>No workspace found.</CommandEmpty>
-                  <CommandGroup>
-                    {workspaces.map((ws) => (
-                      <CommandItem
-                        key={ws.value}
-                        value={ws.value}
-                        onSelect={(currentValue) => {
-                          setSelectedWorkspace(currentValue)
-                          setWorkspacePopoverOpen(false)
-                        }}
-                      >
-                        <CheckIcon
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            selectedWorkspace === ws.value ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {ws.label}
-                      </CommandItem>
-                    ))}
-                    <CommandItem
-                      onSelect={() => {
-                        console.log("Add workspace clicked")
-                        setWorkspacePopoverOpen(false)
-                      }}
-                      className="text-blue-500"
-                    >
-                      + Add Workspace
-                    </CommandItem>
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-
           {/* Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -132,8 +54,8 @@ export default function Header() {
                 onClick={() => setTheme(theme === "light" ? "dark" : "light")}
                 className="flex items-center gap-2 cursor-pointer"
               >
-                {theme === "light" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                {theme === "light" ? "Light Mode" : "Dark Mode"}
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {theme === "dark" ? "Light Mode" : "Dark Mode"}
               </DropdownMenuItem>
 
               <DropdownMenuItem
