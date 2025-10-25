@@ -16,8 +16,6 @@ COPY public ./public
 # Install dependencies and build
 RUN npm ci && npm run build
 
-# Expose port
-EXPOSE 4173
 
 # Start using Vite preview
 CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]

@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Backend - FastAPI application
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: runner-pilot-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # FastAPI Configuration
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=info
+      
+      # Database Configuration
+      - DATABASE_URL=sqlite:///./volumn/db.sqlite3
+      
+      # Runner Configuration
+      - VOLUME_PATH=/app/volumn
+      
+      # CORS Configuration
+      - ALLOWED_ORIGINS=["*"]
+      - ADMIN_EMAIL=admin@gmail.com
+      - ADMIN_PASSWORD=admin123
+      - SECRET_KEY=supersecretkey123
+      - ENVIRONMENT=development
+
+    volumes:
+      # Mount docker socket for Docker operations
+      - /var/run/docker.sock:/var/run/docker.sock
+      
+      # Mount volume for runner data persistence
+      - runner-data:/app/volumn
+    
+    networks:
+      - runner-pilot-network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  runner-data:
+    driver: local
+
+networks:
+  runner-pilot-network:
+    driver: bridge

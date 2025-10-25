@@ -29,4 +29,4 @@ COPY . /app/
 # Sync the project
 RUN uv sync
 
-CMD ["fastapi", "run", "--workers", "4", "app/main.py"]
+CMD ["fastapi", "run", "--workers", "4", "main.py"]
