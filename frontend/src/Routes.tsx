@@ -63,11 +63,14 @@ const AppRoutes: React.FC = () => {
           <Route element={<TestPage />} path={routes.test} />
         </Route>
         <Route element={<ProtectedRoute><DashboardLayout title="Sample" /></ProtectedRoute>}>
-          <Route element={<OverviewPage />} path={routes.dashboardRoot} />
-          <Route element={<OverviewPage />} path={routes.dashboard} />
+          {/* <Route element={<OverviewPage />} path={routes.dashboardRoot} />
+          <Route element={<OverviewPage />} path={routes.dashboard} /> */}
+          {/* Comming Soon */}
         </Route>
         <Route element={<ProtectedRoute><DashboardLayout title="Runners" /></ProtectedRoute>}>
           <Route element={<RunnersPage />} path={routes.runners} />
+          <Route element={<RunnersPage />} path={routes.dashboardRoot} />
+          <Route element={<RunnersPage />} path={routes.dashboard} />
         </Route>
 
       {/* <Route

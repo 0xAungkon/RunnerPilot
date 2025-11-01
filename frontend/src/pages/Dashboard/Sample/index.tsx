@@ -6,7 +6,7 @@ const Sample: React.FC = () => {
     useEffect(() => {
         console.log("User info:", user);
     }, [user]);
-    return <></>;
+    return <>Coming Soon.......</>;
 };
 
 export default Sample;
